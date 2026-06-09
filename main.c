@@ -26,10 +26,23 @@ int main(void)
         if (ch == KEY_BACKSPACE){
             werase(win);
             box(win, 0, 0);
+            pos--;
+            if (pos == -1)
+                pos = 0;
             input_buffer[pos] = '\0';
             mvwprintw(win, 1, 1,"%s", input_buffer);
-            pos--;
         }
+
+        else if (ch == KEY_RIGHT) {
+            pos++;
+            wmove(win, 1, pos);
+        }
+
+        else if (ch == KEY_LEFT) {
+            pos--;
+            wmove(win, 1, pos);
+        }
+
         else {
             werase(win);
             box(win, 0, 0);
