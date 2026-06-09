@@ -1,15 +1,5 @@
 #include <ncurses.h>
 #include <stdbool.h>
-#include <stdio.h>
-
-void str_delete_shift(char *str, int delete_index){
-
-    for (int i = delete_index; str[i] != '\0'; i++)
-    {
-        str[i] = str[i + 1];
-    }
-}
-
 
 int main(void)
 {
@@ -18,9 +8,9 @@ int main(void)
     cbreak();
 
     int row, column;
-    bool exc = false;
     getmaxyx(stdscr, row, column);
-    char input[column]; //dynamically allocate space
+    char input_buffer[column]; 
+    input_buffer[0] = '\0';
 
     WINDOW *win = newwin(3, column -2, row -3, 1);
     keypad(win, true);
@@ -32,54 +22,25 @@ int main(void)
 
     int ch;
     int pos = 0;
-    int input_length;
-    while ((ch = wgetch(win)) != 'q') {
-        if (pos != column - 4 && ch == KEY_BACKSPACE){ //remove from input
-            mvwaddch(win, 1, pos, ' ');
+    while ((ch = wgetch(win)) != '\n') {
+        if (ch == KEY_BACKSPACE){
+            werase(win);
+            box(win, 0, 0);
+            input_buffer[pos] = '\0';
+            mvwprintw(win, 1, 1,"%s", input_buffer);
             pos--;
         }
-
-        else if (pos != column - 4 && ch == KEY_RIGHT){
-            wmove(win, 1, pos+1);
-            pos++;
-        }
-
-        else if (pos != column - 4 && ch == KEY_LEFT){
-            wmove(win, 1, pos-1);
-            pos--;
-        }
-        
-        else if (pos != column - 4){
-            if (pos < input_length){
-                winsch(win, ch);
-                wmove(win, 1, pos);
-                pos++;
-            }
-
-            else{
-                waddch(win, ch);
-                input[pos] = ch;
-                pos++;
-            }
-            wrefresh(win);
-        }
-
         else {
-            exc = true;
-            break;
+            werase(win);
+            box(win, 0, 0);
+            input_buffer[pos] = ch;
+            input_buffer[pos + 1] = '\0';
+            mvwprintw(win, 1, 1,"%s", input_buffer);
+            pos++;
         }
     }
 
     endwin();
 
-    if (exc == true)
-        printf("you exceeded the input buffer\n");
-
-    
-    printf("input is: ");
-    for (int i = 0; i < pos; i++){
-        printf("%c", input[i]);
-    }
-    
     return 0;
 }
