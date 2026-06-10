@@ -15,6 +15,18 @@ void str_delete_shift(char* str, int delete_index)
     }
 }
 
+void str_add_shift(char *str, int shift_index, char ch)
+{
+    size_t len = strlen(str);
+
+    for (int i = len; i >= shift_index; i--)
+    {
+        str[i + 1] = str[i];
+    }
+
+    str[shift_index] = ch;
+}
+
 int main(void)
 {
     initscr();
@@ -38,11 +50,12 @@ int main(void)
     int pos = 0;
     int bufferlen = strlen(input_buffer);
     while ((ch = wgetch(win)) != '\n') {
+        bufferlen = strlen(input_buffer);
+
         if (ch == KEY_BACKSPACE){
             werase(win);
             box(win, 0, 0);
-            // printf("pos,%d\n",pos);
-            // printf("bufferlen,%d\n",bufferlen);
+
             if (pos == bufferlen) {
                 pos--;
                 if (pos == -1)
@@ -59,10 +72,6 @@ int main(void)
                 wmove(win, 1, pos);
             }
         }
-
-        // else if (ch == KEY_UP || ch == KEY_DOWN) {
-        //     continue;
-        // }
 
         else if (ch == KEY_RIGHT) {
             pos++;
@@ -84,10 +93,16 @@ int main(void)
             wmove(win, 1, pos);
             input_buffer[pos] = ch;
             if (pos == bufferlen)
+            {
                 input_buffer[pos + 1] = '\0';
-            mvwprintw(win, 1, 1,"%s", input_buffer);
-            pos++;
-            bufferlen = strlen(input_buffer);
+                mvwprintw(win, 1, 1,"%s", input_buffer);
+                pos++;
+            }
+            else {
+                str_add_shift(input_buffer, pos, ch);
+                mvwprintw(win, 1, 1,"%s", input_buffer);
+                pos++;
+            }
         }
     }
     endwin();
