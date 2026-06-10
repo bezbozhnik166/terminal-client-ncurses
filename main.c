@@ -52,6 +52,7 @@ int main(void)
                 bufferlen = strlen(input_buffer);
             }
             else {
+                pos--;
                 str_delete_shift(input_buffer, pos);
                 mvwprintw(win, 1, 1,"%s", input_buffer);
                 bufferlen = strlen(input_buffer);
@@ -82,7 +83,8 @@ int main(void)
             box(win, 0, 0);
             wmove(win, 1, pos);
             input_buffer[pos] = ch;
-            input_buffer[pos + 1] = '\0';
+            if (pos == bufferlen)
+                input_buffer[pos + 1] = '\0';
             mvwprintw(win, 1, 1,"%s", input_buffer);
             pos++;
             bufferlen = strlen(input_buffer);
