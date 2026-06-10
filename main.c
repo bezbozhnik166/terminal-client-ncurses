@@ -39,6 +39,7 @@ int main(void)
     input_buffer[0] = '\0';
 
     WINDOW *win = newwin(3, column -2, row -3, 1);
+    WINDOW *main_win = newwin(row - 3, column - 2, 0, 1);
     keypad(win, true);
     keypad(stdscr, true);
     wmove(win, 1, 1);
@@ -69,28 +70,28 @@ int main(void)
                 str_delete_shift(input_buffer, pos);
                 mvwprintw(win, 1, 1,"%s", input_buffer);
                 bufferlen = strlen(input_buffer);
-                wmove(win, 1, pos);
+                wmove(win, 1, pos + 1);
             }
         }
 
         else if (ch == KEY_RIGHT) {
             pos++;
-            if (pos >= bufferlen)
-                pos = bufferlen + 1;
-            wmove(win, 1, pos);
+            if (pos > bufferlen)
+                pos = bufferlen;
+            wmove(win, 1, pos + 1);
         }
 
         else if (ch == KEY_LEFT) {
             pos--;
             if (pos == -1)
                 pos = 0;
-            wmove(win, 1, pos);
+            wmove(win, 1, pos + 1);
         }
 
         else {
             werase(win);
             box(win, 0, 0);
-            wmove(win, 1, pos);
+            wmove(win, 1, pos + 1);
             input_buffer[pos] = ch;
             if (pos == bufferlen)
             {
@@ -104,6 +105,11 @@ int main(void)
                 pos++;
             }
         }
+        werase(main_win);
+        box(main_win, 0, 0);
+        mvwprintw(main_win,1, 1, "pos: %d",pos);
+        mvwprintw(main_win,2, 1, "bufferlen: %d",bufferlen);
+        wrefresh(main_win);
     }
     endwin();
 
