@@ -34,7 +34,6 @@ int main(void)
 {
     initscr();
     noecho();
-    cbreak();
 
     int row, column;
     getmaxyx(stdscr, row, column);
@@ -104,9 +103,12 @@ int main(void)
             else {
                 str_add_shift(input_buffer, pos, ch, column);
                 mvwprintw(win, 1, 1,"%s", input_buffer);
+                wmove(win, 1, pos + 1);
+                wrefresh(win);
                 pos++;
             }
         }
+
         bufferlen = strlen(input_buffer);
         werase(main_win);
         box(main_win, 0, 0);
