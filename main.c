@@ -1,27 +1,24 @@
+#include <bits/posix2_lim.h>
 #include <ncurses.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+typedef struct {
+    int len;
+    char* buffer;
+    int cursor;
+} typeBox;
 
-void str_delete_shift(char* str, int delete_index)
-{
-    if (delete_index < 0)
-        return;
+void drawChat();
 
-    for (int i = delete_index; str[i] != '\0'; i++)
-    {
-        str[i] = str[i + 1];
-    }
-}
+void submit();
 
-void str_add_shift(char *str, int shift_index, char ch, int capacity)
-{
-    size_t len = strlen(str);
-
-    if (len >= capacity - 1)
-        return;
-
+void strShiftAdd(char *str, int shift_index, char ch, int len){
+    // size_t len = strlen(str);
+    // if (len >= capacity - 1)
+    //     return;
+    
     for (int i = len; i >= shift_index; i--)
     {
         str[i + 1] = str[i];
@@ -30,95 +27,142 @@ void str_add_shift(char *str, int shift_index, char ch, int capacity)
     str[shift_index] = ch;
 }
 
-int main(void)
+void strShiftDelete(char* str, int delete_index){
+    if (delete_index < 0)
+        return;
+
+    for (int i = delete_index; str[i] != '\0'; i++)
+        str[i] = str[i + 1];
+}
+
+void drawInputBox(WINDOW* inputBox, typeBox input){
+    werase(inputBox);
+    box(inputBox, 0, 0);
+    mvwprintw(inputBox, 1, 1, "%s", input.buffer);
+    wrefresh(inputBox);
+    // wmove(inputBox, 1, input.cursor + 1);
+}
+
+void backspaceLastChar(WINDOW* inputBox, typeBox input){
+    werase(inputBox);
+    box(inputBox, 0, 0);
+    input.buffer[input.cursor] = '\0';
+    mvwprintw(inputBox, 1, 1, "%s", input.buffer);
+    wrefresh(inputBox);
+}
+
+void backspaceMidChar(WINDOW* inputBox, typeBox input){
+    werase(inputBox);
+    box(inputBox, 0, 0);
+    strShiftDelete(input.buffer, input.cursor);
+    mvwprintw(inputBox, 1, 1, "%s", input.buffer);
+    wrefresh(inputBox);
+    wmove(inputBox, 1, input.cursor + 1);
+}
+
+int main(int argc, char *argv[])
 {
     initscr();
     noecho();
 
     int row, column;
+
     getmaxyx(stdscr, row, column);
-    char* input_buffer = malloc(column*sizeof(char));
-    input_buffer[0] = '\0';
 
-    WINDOW *win = newwin(3, column -2, row -3, 1);
-    WINDOW *main_win = newwin(row - 3, column - 2, 0, 1);
-    keypad(win, true);
+    WINDOW *inputBox = newwin(3, column -2, row -3, 1);
+    WINDOW *mainWin = newwin(row - 3, column - 2, 0, 1);
+
+    typeBox input;
+
+    input.len = 0;
+    input.cursor = 0;
+    input.buffer = malloc(column);
+
+    keypad(inputBox, true);
     keypad(stdscr, true);
-    wmove(win, 1, 1);
-    box(win, 0, 0);
+    wmove(inputBox, 1, 1); // add +1 when you move inside inputBox;
+    box(inputBox, 0, 0);
+    box(mainWin, 0, 0);
     refresh();
-    wrefresh(win);
+    wrefresh(mainWin);
+    wrefresh(inputBox);
 
+    int running = 1;
     int ch;
-    int pos = 0;
-    int bufferlen = strlen(input_buffer);
-    while ((ch = wgetch(win)) != '\n') {
+    while (running) {
+        switch (ch = wgetch(inputBox)) {
+            case KEY_UP:
+                wprintw(mainWin,"KEY_UP");
+                break;
 
-        if (ch == KEY_BACKSPACE){
-            werase(win);
-            box(win, 0, 0);
+            case KEY_DOWN:
+                wprintw(mainWin,"KEY_DOWN");
+                break;
 
-            if (pos == bufferlen) {
-                pos--;
-                if (pos == -1)
-                    pos = 0;
-                input_buffer[pos] = '\0';
-                mvwprintw(win, 1, 1,"%s", input_buffer);
-                bufferlen = strlen(input_buffer);
-            }
-            else {
-                pos--;
-                str_delete_shift(input_buffer, pos);
-                mvwprintw(win, 1, 1,"%s", input_buffer);
-                bufferlen = strlen(input_buffer);
-                wmove(win, 1, pos + 1);
-            }
+            case KEY_RIGHT:
+                input.cursor++;
+                if (input.cursor > input.len)
+                    input.cursor = input.len;
+                wmove(inputBox, 1, input.cursor + 1);
+                break;
+
+            case KEY_LEFT:
+                input.cursor--;
+                if (input.cursor < 0) 
+                    input.cursor = 0;
+                wmove(inputBox, 1, input.cursor + 1);
+                break;
+
+            case KEY_BACKSPACE:
+                input.cursor--;
+                input.len--;
+                if (input.len < 0)
+                    input.len = 0;
+                if (input.cursor < 0) 
+                    input.cursor = 0;
+
+                if (input.cursor == input.len)
+                    backspaceLastChar(inputBox, input);
+
+                else {
+                    backspaceMidChar(inputBox, input);
+                }
+
+                break;
+
+            case '\n':
+                if (strcmp(input.buffer, "!exit") == OK) {
+                    running = 0;
+                }
+                break;
+
+            case 'q':
+                running = 0;
+                break;
+
+            default:
+                if (input.len + 1 != column - 3) {
+                    if (input.len == input.cursor) {
+                        input.buffer[input.cursor] = ch;
+                        input.cursor++;
+                        input.len++;
+                        drawInputBox(inputBox, input);
+                    }
+                    else {     // this part is broken 
+                        input.cursor++;
+                        input.len++;
+                        strShiftAdd(input.buffer, input.cursor, ch, input.len); 
+                        drawInputBox(inputBox, input);
+                        wmove(inputBox, 1, input.cursor + 1);
+                    }
+                }
+                break;
         }
-
-        else if (ch == KEY_RIGHT) {
-            pos++;
-            if (pos > bufferlen)
-                pos = bufferlen;
-            wmove(win, 1, pos + 1);
-        }
-
-        else if (ch == KEY_LEFT) {
-            pos--;
-            if (pos == -1)
-                pos = 0;
-            wmove(win, 1, pos + 1);
-        }
-
-        else {
-            werase(win);
-            box(win, 0, 0);
-            wmove(win, 1, pos + 1);
-            if (pos == bufferlen)
-            {
-                input_buffer[pos] = ch;
-                input_buffer[pos + 1] = '\0';
-                mvwprintw(win, 1, 1,"%s", input_buffer);
-                pos++;
-            }
-            else {
-                str_add_shift(input_buffer, pos, ch, column);
-                mvwprintw(win, 1, 1,"%s", input_buffer);
-                wmove(win, 1, pos + 1);
-                wrefresh(win);
-                pos++;
-            }
-        }
-
-        bufferlen = strlen(input_buffer);
-        werase(main_win);
-        box(main_win, 0, 0);
-        mvwprintw(main_win,1, 1, "pos: %d",pos);
-        mvwprintw(main_win,2, 1, "bufferlen: %d",bufferlen);
-        wrefresh(main_win);
     }
+
     endwin();
 
-    printf("%d\n",bufferlen);
-    free(input_buffer);
+    printf("%s\n", input.buffer);
+    printf("%d\n", input.len);
     return 0;
 }
