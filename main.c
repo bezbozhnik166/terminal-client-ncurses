@@ -9,9 +9,33 @@ typedef struct {
     int cursor;
 } typeBox;
 
-void drawChat();
+typedef struct {
+    int row;
+    int column;
+    char* buffer[255]; 
+    int curRow;
+} chatBox;
 
-void submit();
+void drawChat(WINDOW* mainWin, chatBox output, int drawIndex, int row){
+    int screenSize = row + drawIndex;
+
+    werase(mainWin);
+    box(mainWin, 0, 0);
+
+    int idx = 0;
+    for (int i = drawIndex; i < output.curRow; i++){
+        mvwprintw(mainWin, idx + 1, 1, "%d",i);
+        mvwprintw(mainWin, idx + 1, 3, "%s",output.buffer[i]);
+        idx++;
+    }
+
+    wrefresh(mainWin);
+}
+
+void submit(WINDOW* mainWin, typeBox input, chatBox* output){
+
+    strcpy(output->buffer[output->curRow], input.buffer);
+}
 
 void strShiftAdd(char *str, int shift_index, char ch, int len){
     // size_t len = strlen(str);
@@ -72,6 +96,15 @@ int main(int argc, char *argv[])
     WINDOW *mainWin = newwin(row - 3, column - 2, 0, 1);
 
     typeBox input;
+    chatBox output;
+    
+    getmaxyx(mainWin, output.row, output.column);
+
+    output.curRow = 0;
+
+    // for (int i = 0; i < 255; i++) {
+    //     output.buffer[i] = malloc(column);
+    // }
 
     input.len = 0;
     input.cursor = 0;
@@ -133,21 +166,37 @@ int main(int argc, char *argv[])
                 if (strcmp(input.buffer, "!exit") == OK) {
                     running = 0;
                 }
+
+                else { // why does this seg fault ?
+                    output.buffer[output.curRow] = malloc(input.len);
+                    strcpy(output.buffer[output.curRow], input.buffer); 
+                    drawChat(mainWin, output, 0, output.row);
+                    output.curRow++;
+                    wrefresh(mainWin);
+                    input.buffer[0] = '\0';
+                    input.len = 0;
+                    input.cursor = 0;
+                    drawInputBox(inputBox, input);
+                }
                 break;
 
-            case 'q':
-                running = 0;
+            case KEY_DC:
+                input.buffer[0] = '\0';
+                input.len = 0;
+                input.cursor = 0;
+                drawInputBox(inputBox, input);
                 break;
 
             default:
                 if (input.len + 1 != column - 3) {
                     if (input.len == input.cursor) {
                         input.buffer[input.cursor] = ch;
+                        input.buffer[input.cursor + 1] = '\0';
                         input.cursor++;
                         input.len++;
                         drawInputBox(inputBox, input);
                     }
-                    else {     // this part is broken why is that ? (and also ignore all the other problems with this program. I'm still in the beggining of building this app. I'll handle the other issues myself. Now i just need to know why is adding char in the middle of the sentence is buggy)
+                    else {     
                         strShiftAdd(input.buffer, input.cursor, ch, input.len); 
                         input.cursor++;
                         input.len++;
@@ -157,6 +206,7 @@ int main(int argc, char *argv[])
                 }
                 break;
         }
+
     }
 
     endwin();
