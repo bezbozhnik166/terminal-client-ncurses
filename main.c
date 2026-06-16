@@ -1,4 +1,3 @@
-#include <bits/posix2_lim.h>
 #include <ncurses.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -148,10 +147,10 @@ int main(int argc, char *argv[])
                         input.len++;
                         drawInputBox(inputBox, input);
                     }
-                    else {     // this part is broken 
+                    else {     // this part is broken why is that ? (and also ignore all the other problems with this program. I'm still in the beggining of building this app. I'll handle the other issues myself. Now i just need to know why is adding char in the middle of the sentence is buggy)
+                        strShiftAdd(input.buffer, input.cursor, ch, input.len); 
                         input.cursor++;
                         input.len++;
-                        strShiftAdd(input.buffer, input.cursor, ch, input.len); 
                         drawInputBox(inputBox, input);
                         wmove(inputBox, 1, input.cursor + 1);
                     }
