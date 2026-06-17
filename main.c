@@ -27,6 +27,10 @@ void drawChat(WINDOW* mainWin, chatBox output, int drawIndex, int row){
         mvwprintw(mainWin, idx + 1, 1, "%d",i);
         mvwprintw(mainWin, idx + 1, 3, "%s",output.buffer[i]);
         idx++;
+        if (idx + 2 == output.row)
+        {
+            idx--;
+        }
     }
 
     wrefresh(mainWin);
@@ -172,21 +176,16 @@ int main(int argc, char *argv[])
                     strcpy(output.buffer[output.curRow], input.buffer); 
                     output.curRow++;
                     if (output.curRow > output.row) {
-                        drawChat(mainWin, output, output.curRow - output.row , output.row);
-                        wrefresh(mainWin);
-                        input.buffer[0] = '\0';
-                        input.len = 0;
-                        input.cursor = 0;
-                        drawInputBox(inputBox, input);
+                        drawChat(mainWin, output, output.curRow - output.row , output.row); // pass input by reference and add the stuff below
                     }
                     else {
                         drawChat(mainWin, output, 0, output.row);
-                        wrefresh(mainWin);
-                        input.buffer[0] = '\0';
-                        input.len = 0;
-                        input.cursor = 0;
-                        drawInputBox(inputBox, input);
                     }
+                    wrefresh(mainWin);
+                    input.buffer[0] = '\0';
+                    input.len = 0;
+                    input.cursor = 0;
+                    drawInputBox(inputBox, input);
                 }
                 break;
 
