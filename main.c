@@ -170,13 +170,23 @@ int main(int argc, char *argv[])
                 else { // why does this seg fault ?
                     output.buffer[output.curRow] = malloc(input.len);
                     strcpy(output.buffer[output.curRow], input.buffer); 
-                    drawChat(mainWin, output, 0, output.row);
                     output.curRow++;
-                    wrefresh(mainWin);
-                    input.buffer[0] = '\0';
-                    input.len = 0;
-                    input.cursor = 0;
-                    drawInputBox(inputBox, input);
+                    if (output.curRow > output.row) {
+                        drawChat(mainWin, output, output.curRow - output.row , output.row);
+                        wrefresh(mainWin);
+                        input.buffer[0] = '\0';
+                        input.len = 0;
+                        input.cursor = 0;
+                        drawInputBox(inputBox, input);
+                    }
+                    else {
+                        drawChat(mainWin, output, 0, output.row);
+                        wrefresh(mainWin);
+                        input.buffer[0] = '\0';
+                        input.len = 0;
+                        input.cursor = 0;
+                        drawInputBox(inputBox, input);
+                    }
                 }
                 break;
 
