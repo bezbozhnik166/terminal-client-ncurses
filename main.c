@@ -16,21 +16,20 @@ typedef struct {
     int curRow;
 } chatBox;
 
-void drawChat(WINDOW* mainWin, chatBox output, int drawIndex, int row){
-    int screenSize = row + drawIndex;
+void drawChat(WINDOW* mainWin, chatBox output, int drawIndex){
 
     werase(mainWin);
     box(mainWin, 0, 0);
 
     int idx = 0;
     for (int i = drawIndex; i < output.curRow; i++){
+        if (idx >= output.row) {
+            break;
+        }
+
         mvwprintw(mainWin, idx + 1, 1, "%d",i);
         mvwprintw(mainWin, idx + 1, 3, "%s",output.buffer[i]);
         idx++;
-        if (idx + 2 == output.row)
-        {
-            idx--;
-        }
     }
 
     wrefresh(mainWin);
@@ -42,9 +41,6 @@ void submit(WINDOW* mainWin, typeBox input, chatBox* output){
 }
 
 void strShiftAdd(char *str, int shift_index, char ch, int len){
-    // size_t len = strlen(str);
-    // if (len >= capacity - 1)
-    //     return;
     
     for (int i = len; i >= shift_index; i--)
     {
@@ -67,7 +63,6 @@ void drawInputBox(WINDOW* inputBox, typeBox input){
     box(inputBox, 0, 0);
     mvwprintw(inputBox, 1, 1, "%s", input.buffer);
     wrefresh(inputBox);
-    // wmove(inputBox, 1, input.cursor + 1);
 }
 
 void backspaceLastChar(WINDOW* inputBox, typeBox input){
@@ -104,15 +99,13 @@ int main(int argc, char *argv[])
     
     getmaxyx(mainWin, output.row, output.column);
 
+    output.row -= 2;
     output.curRow = 0;
-
-    // for (int i = 0; i < 255; i++) {
-    //     output.buffer[i] = malloc(column);
-    // }
 
     input.len = 0;
     input.cursor = 0;
     input.buffer = malloc(column);
+    input.buffer[0] = '\0';
 
     keypad(inputBox, true);
     keypad(stdscr, true);
@@ -171,15 +164,16 @@ int main(int argc, char *argv[])
                     running = 0;
                 }
 
-                else { // why does this seg fault ?
-                    output.buffer[output.curRow] = malloc(input.len);
+                else {
+                    output.buffer[output.curRow] = malloc(input.len + 1);
                     strcpy(output.buffer[output.curRow], input.buffer); 
                     output.curRow++;
-                    if (output.curRow > output.row) {
-                        drawChat(mainWin, output, output.curRow - output.row , output.row); // pass input by reference and add the stuff below
+
+                    if (output.curRow >= output.row) {
+                        drawChat(mainWin, output, output.curRow - output.row); 
                     }
                     else {
-                        drawChat(mainWin, output, 0, output.row);
+                        drawChat(mainWin, output, 0);
                     }
                     wrefresh(mainWin);
                     input.buffer[0] = '\0';
@@ -220,7 +214,11 @@ int main(int argc, char *argv[])
 
     endwin();
 
-    printf("%s\n", input.buffer);
-    printf("%d\n", input.len);
+    for (int i = 0; i < output.curRow; i++)
+        free(output.buffer[i]);
+
+    free(input.buffer);
+    
+    printf("output.row,%d\n", output.row); 
     return 0;
 }
