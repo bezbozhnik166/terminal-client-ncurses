@@ -118,14 +118,32 @@ int main(int argc, char *argv[])
 
     int running = 1;
     int ch;
+    int topRow = 0;
+    int maxScroll;
     while (running) {
         switch (ch = wgetch(inputBox)) {
             case KEY_UP:
-                wprintw(mainWin,"KEY_UP");
+                topRow -= 2;
+
+                if (topRow < 0) 
+                    topRow = 0;
+                
+                drawChat(mainWin, output, topRow);
                 break;
 
             case KEY_DOWN:
-                wprintw(mainWin,"KEY_DOWN");
+                topRow += 2;
+
+                maxScroll = output.curRow - output.row;
+
+                if (maxScroll < 0)
+                    maxScroll = 0;
+
+                if (topRow > maxScroll)
+                    topRow = maxScroll;
+
+                // if (output.curRow >= output.row)
+                drawChat(mainWin, output, topRow);
                 break;
 
             case KEY_RIGHT:
@@ -168,6 +186,11 @@ int main(int argc, char *argv[])
                     output.buffer[output.curRow] = malloc(input.len + 1);
                     strcpy(output.buffer[output.curRow], input.buffer); 
                     output.curRow++;
+
+                    topRow = (output.curRow - output.row); 
+
+                    if (topRow < 0)
+                        topRow = 0;
 
                     if (output.curRow >= output.row) {
                         drawChat(mainWin, output, output.curRow - output.row); 
