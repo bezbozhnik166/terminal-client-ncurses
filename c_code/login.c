@@ -13,7 +13,7 @@ typedef struct{
 
 void drawInput(WINDOW* inputBox, Input input){
     werase(inputBox);
-    mvwprintw(inputBox, 1, 1, "%s", input.username);
+    mvwprintw(inputBox, 0, 0, "%s", input.username);
     wrefresh(inputBox);
 }
 
@@ -21,7 +21,8 @@ void initLogin(){
     initscr();
     noecho();
     start_color();
-    init_pair(1, COLOR_BLACK, COLOR_WHITE);
+    // init_pair(1, COLOR_BLACK, COLOR_RED);
+    init_pair(1, COLOR_BLACK ,COLOR_WHITE);
     int win_height = 10;
     int win_width = 40;
 
@@ -53,18 +54,21 @@ void initLogin(){
     while (running) {
         switch (ch = wgetch(usernameBox)) {
             case KEY_BACKSPACE:
+                break;
 
             default:
+                input.username[input.cursor] = ch;
                 input.cursor++;
                 input.len++;
-                input.username[input.cursor] = ch;
-                input.username[input.cursor + 1] = '\0';
+                input.username[input.cursor] = '\0';
                 drawInput(usernameBox, input);
 
         }
         wrefresh(loginWin);
         wrefresh(usernameBox);
     }
+
+    free(input.username);
     endwin();
 
 }
