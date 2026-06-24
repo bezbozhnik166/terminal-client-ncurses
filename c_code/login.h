@@ -1,4 +1,4 @@
 
 typedef struct user user;
 
-user initLogin();
+void initLogin();

@@ -1,9 +1,9 @@
 #include <ncurses.h>
 #include <stdlib.h>
 
-typedef struct user {
-    char *username;
-} user;
+// typedef struct user {
+//     char *username;
+// } user;
 
 typedef struct{
     char* username;
@@ -11,7 +11,7 @@ typedef struct{
     int len;
 } Input;
 
-void drawInputBox(WINDOW* inputBox, Input input){
+void drawInput(WINDOW* inputBox, Input input){
     werase(inputBox);
     mvwprintw(inputBox, 1, 1, "%s", input.username);
     wrefresh(inputBox);
@@ -59,7 +59,7 @@ void initLogin(){
                 input.len++;
                 input.username[input.cursor] = ch;
                 input.username[input.cursor + 1] = '\0';
-                drawInputBox(usernameBox, input);
+                drawInput(usernameBox, input);
 
         }
         wrefresh(loginWin);
@@ -69,8 +69,8 @@ void initLogin(){
 
 }
 
-int main(void)
+int main()
 {
     initLogin();
-    return 0;
+    return EXIT_SUCCESS;
 }
