@@ -23,6 +23,7 @@ void initLogin(){
     start_color();
     // init_pair(1, COLOR_BLACK, COLOR_RED);
     init_pair(1, COLOR_BLACK ,COLOR_WHITE);
+    init_pair(2, COLOR_WHITE ,COLOR_BLACK);
     int win_height = 10;
     int win_width = 40;
 
@@ -32,13 +33,16 @@ void initLogin(){
     // mvprintw(starty + 1, startx - 10, "username:");
     WINDOW* loginWin = newwin(win_height, win_width, starty, startx);
 
-    WINDOW* usernameBox = derwin(loginWin, 1, 10, 4 , 15);
+    WINDOW* usernameBox = derwin(loginWin, 1, win_width - 4, 4 , 10);
     wbkgd(usernameBox, COLOR_PAIR(1));
 
-    keypad(usernameBox, 1);
+    WINDOW* passwordBox = derwin(loginWin, 1, win_width, 6 , 10);
+    wbkgd(passwordBox, COLOR_PAIR(1));
+
+    wbkgd(stdscr, COLOR_PAIR(2));
 
     mvwprintw(loginWin, 4, 6, "username:");
-
+    mvwprintw(loginWin, 6, 6, "password:");
     Input input;
     input.username = malloc(15);
     input.cursor = 0;
@@ -54,14 +58,33 @@ void initLogin(){
     while (running) {
         switch (ch = wgetch(usernameBox)) {
             case KEY_BACKSPACE:
+                if (input.cursor > 0) {
+                    input.cursor--;
+                    input.len--;
+                    input.username[input.cursor] = '\0';
+                    drawInput(usernameBox, input);
+                }
+                break;
+
+            case KEY_UP:
+                break;
+
+            case KEY_DOWN:
+                break;
+
+            case '\n':
+                running = 0;;
                 break;
 
             default:
-                input.username[input.cursor] = ch;
-                input.cursor++;
-                input.len++;
-                input.username[input.cursor] = '\0';
-                drawInput(usernameBox, input);
+                if (input.cursor < 14) {
+                    input.username[input.cursor] = ch;
+                    input.cursor++;
+                    input.len++;
+                    input.username[input.cursor] = '\0';
+                    drawInput(usernameBox, input);
+                }
+                break;
 
         }
         wrefresh(loginWin);
@@ -70,7 +93,6 @@ void initLogin(){
 
     free(input.username);
     endwin();
-
 }
 
 int main()
