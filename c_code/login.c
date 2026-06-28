@@ -23,7 +23,7 @@ void initLogin(){
     start_color();
     // init_pair(1, COLOR_BLACK, COLOR_RED);
     init_pair(1, COLOR_BLACK ,COLOR_WHITE);
-    init_pair(2, COLOR_WHITE ,COLOR_BLACK);
+    // init_pair(2, COLOR_WHITE ,COLOR_BLACK);
     int win_height = 10;
     int win_width = 40;
 
@@ -33,16 +33,17 @@ void initLogin(){
     // mvprintw(starty + 1, startx - 10, "username:");
     WINDOW* loginWin = newwin(win_height, win_width, starty, startx);
 
-    WINDOW* usernameBox = derwin(loginWin, 1, win_width - 4, 4 , 10);
+    WINDOW* usernameBox = derwin(loginWin, 1, win_width - 12, 4, 8); //why is it that neither of these windows get highlighted ? Am i adding them to the wrong location ?
     wbkgd(usernameBox, COLOR_PAIR(1));
 
-    WINDOW* passwordBox = derwin(loginWin, 1, win_width, 6 , 10);
+    WINDOW* passwordBox = derwin(loginWin, 1, win_width - 12, 6, 8);  //why is it that neither of these windows get highlighted ? Am i adding them to the wrong location ?
     wbkgd(passwordBox, COLOR_PAIR(1));
 
     wbkgd(stdscr, COLOR_PAIR(2));
 
-    mvwprintw(loginWin, 4, 6, "username:");
-    mvwprintw(loginWin, 6, 6, "password:");
+
+    mvwprintw(loginWin, 4, 2, "username:");
+    mvwprintw(loginWin, 6, 2, "password:");
     Input input;
     input.username = malloc(15);
     input.cursor = 0;
@@ -52,6 +53,8 @@ void initLogin(){
     box(loginWin, 0, 0);
     refresh();
     wrefresh(loginWin);
+    wrefresh(usernameBox);
+    wrefresh(passwordBox);
 
     int running = 1;
     int ch;
