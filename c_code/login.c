@@ -7,6 +7,7 @@
 
 typedef struct{
     char* username;
+    char* password;
     int cursor;
     int len;
 } Input;
@@ -21,9 +22,9 @@ void initLogin(){
     initscr();
     noecho();
     start_color();
-    // init_pair(1, COLOR_BLACK, COLOR_RED);
+    use_default_colors();
     init_pair(1, COLOR_BLACK ,COLOR_WHITE);
-    // init_pair(2, COLOR_WHITE ,COLOR_BLACK);
+
     int win_height = 10;
     int win_width = 40;
 
@@ -33,34 +34,44 @@ void initLogin(){
     // mvprintw(starty + 1, startx - 10, "username:");
     WINDOW* loginWin = newwin(win_height, win_width, starty, startx);
 
-    WINDOW* usernameBox = derwin(loginWin, 1, win_width - 12, 4, 8); //why is it that neither of these windows get highlighted ? Am i adding them to the wrong location ?
+    WINDOW* usernameBox = derwin(loginWin, 1, win_width - 14, 3, 12); 
     wbkgd(usernameBox, COLOR_PAIR(1));
+    keypad(usernameBox, 1);
 
-    WINDOW* passwordBox = derwin(loginWin, 1, win_width - 12, 6, 8);  //why is it that neither of these windows get highlighted ? Am i adding them to the wrong location ?
+    // WINDOW* passwordBox = derwin(loginWin, 1, win_width - 12, 6, 12);  
+    WINDOW* passwordBox = derwin(loginWin, 1, win_width - 14, 5, 12);  
     wbkgd(passwordBox, COLOR_PAIR(1));
+    keypad(passwordBox, 1);
 
-    wbkgd(stdscr, COLOR_PAIR(2));
+    mvwprintw(loginWin, 3, 2, "username:");
+    mvwprintw(loginWin, 5, 2, "password:");
 
+    wattron(loginWin, A_REVERSE);
+    mvwprintw(loginWin, 7, win_width - 13, "[login]");
+    wattroff(loginWin, A_REVERSE);
+    mvwprintw(loginWin, 7, win_width - 20, "[exit]");
 
-    mvwprintw(loginWin, 4, 2, "username:");
-    mvwprintw(loginWin, 6, 2, "password:");
     Input input;
-    input.username = malloc(15);
+    input.username = malloc(26);
+    input.password = malloc(26);
     input.cursor = 0;
     input.len = 0;
     input.username[0] = '\0';
-
+    
     box(loginWin, 0, 0);
     refresh();
     wrefresh(loginWin);
     wrefresh(usernameBox);
     wrefresh(passwordBox);
 
+    //                   0              1              2          3
+    char* elements[4] = {"usernameBox", "passwordBox", "[login]", "[exit]"};
+
     int running = 1;
     int ch;
     while (running) {
         switch (ch = wgetch(usernameBox)) {
-            case KEY_BACKSPACE:
+            case KEY_BACKSPACE: // in the current version why is the backspace not working
                 if (input.cursor > 0) {
                     input.cursor--;
                     input.len--;
@@ -80,7 +91,7 @@ void initLogin(){
                 break;
 
             default:
-                if (input.cursor < 14) {
+                if (input.cursor < 26) {
                     input.username[input.cursor] = ch;
                     input.cursor++;
                     input.len++;
@@ -95,6 +106,7 @@ void initLogin(){
     }
 
     free(input.username);
+    free(input.password);
     endwin();
 }
 
