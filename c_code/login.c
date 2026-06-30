@@ -1,5 +1,10 @@
 #include <ncurses.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#define DEFAULT_LOCATION "passwordBox"
 
 // typedef struct user {
 //     char *username;
@@ -12,11 +17,28 @@ typedef struct{
     int len;
 } Input;
 
-void drawInput(WINDOW* inputBox, Input input){
-    werase(inputBox);
-    mvwprintw(inputBox, 0, 0, "%s", input.username);
-    wrefresh(inputBox);
+typedef struct{
+    WINDOW* usernameBox;
+    WINDOW* passwordBox;
+    char* login;
+    char* exit;
+    char* curLocation;
+} Focus;
+
+void drawInput(Focus focus, Input input){
+    if (strcmp(focus.curLocation, "usernameBox") == 0){
+        werase(focus.usernameBox);
+        mvwprintw(focus.usernameBox, 0, 0, "%s", input.username);
+        wrefresh(focus.usernameBox);
+    }
+
+    else if (strcmp(focus.curLocation, "passwordBox") == 0) {
+        werase(focus.passwordBox);
+        mvwprintw(focus.passwordBox, 0, 0, "%s", input.password);
+        wrefresh(focus.passwordBox);
+    }
 }
+
 
 void initLogin(){
     initscr();
@@ -51,6 +73,13 @@ void initLogin(){
     wattroff(loginWin, A_REVERSE);
     mvwprintw(loginWin, 7, win_width - 20, "[exit]");
 
+    Focus focus;
+    focus.usernameBox = usernameBox;
+    focus.passwordBox = passwordBox;
+    focus.login = "[login]";
+    focus.exit = "[exit]";
+    focus.curLocation = DEFAULT_LOCATION;
+
     Input input;
     input.username = malloc(26);
     input.password = malloc(26);
@@ -71,19 +100,21 @@ void initLogin(){
     int ch;
     while (running) {
         switch (ch = wgetch(usernameBox)) {
-            case KEY_BACKSPACE: // in the current version why is the backspace not working
+            case KEY_BACKSPACE: 
                 if (input.cursor > 0) {
                     input.cursor--;
                     input.len--;
                     input.username[input.cursor] = '\0';
-                    drawInput(usernameBox, input);
+                    drawInput(focus, input);
                 }
                 break;
 
             case KEY_UP:
+                focus.curLocation = "usernameBox";
                 break;
 
             case KEY_DOWN:
+                focus.curLocation = "passwordBox";
                 break;
 
             case '\n':
@@ -96,7 +127,7 @@ void initLogin(){
                     input.cursor++;
                     input.len++;
                     input.username[input.cursor] = '\0';
-                    drawInput(usernameBox, input);
+                    drawInput(focus, input); // why is it printing at inputBox when i start typing even though the focus.curLocation is obviously passwordBox
                 }
                 break;
 
@@ -108,6 +139,7 @@ void initLogin(){
     free(input.username);
     free(input.password);
     endwin();
+    printf("%s\n", focus.curLocation);
 }
 
 int main()
