@@ -13,8 +13,10 @@
 typedef struct{
     char* username;
     char* password;
-    int cursor;
-    int len;
+    int usernameBoxCursor;
+    int usernameBoxLen;
+    int passwordBoxCursor;
+    int passwordBoxLen;
 } Input;
 
 typedef struct{
@@ -38,7 +40,6 @@ void drawInput(Focus focus, Input input){
         wrefresh(focus.passwordBox);
     }
 }
-
 
 void initLogin(){
     initscr();
@@ -83,9 +84,12 @@ void initLogin(){
     Input input;
     input.username = malloc(26);
     input.password = malloc(26);
-    input.cursor = 0;
-    input.len = 0;
+    input.usernameBoxCursor = 0;
+    input.usernameBoxLen = 0;
+    input.passwordBoxCursor = 0;
+    input.passwordBoxLen = 0;
     input.username[0] = '\0';
+    input.password[0] = '\0';
     
     box(loginWin, 0, 0);
     refresh();
@@ -93,18 +97,25 @@ void initLogin(){
     wrefresh(usernameBox);
     wrefresh(passwordBox);
 
-    //                   0              1              2          3
-    char* elements[4] = {"usernameBox", "passwordBox", "[login]", "[exit]"};
+                      // 0              1              2          3
+    // char* elements[4] = {"usernameBox", "passwordBox", "[login]", "[exit]"};
 
     int running = 1;
     int ch;
     while (running) {
         switch (ch = wgetch(usernameBox)) {
             case KEY_BACKSPACE: 
-                if (input.cursor > 0) {
-                    input.cursor--;
-                    input.len--;
-                    input.username[input.cursor] = '\0';
+                if (input.usernameBoxCursor > 0 && strcmp(focus.curLocation, "usernameBox") == 0) {
+                    input.usernameBoxCursor--;
+                    input.usernameBoxLen--;
+                    input.username[input.usernameBoxCursor] = '\0';
+                    drawInput(focus, input);
+                }
+
+                else if (input.passwordBoxCursor > 0 && strcmp(focus.curLocation, "passwordBox") == 0) {
+                    input.passwordBoxCursor--;
+                    input.passwordBoxLen--;
+                    input.password[input.passwordBoxCursor] = '\0';
                     drawInput(focus, input);
                 }
                 break;
@@ -122,18 +133,23 @@ void initLogin(){
                 break;
 
             default:
-                if (input.cursor < 26) {
-                    input.username[input.cursor] = ch;
-                    input.cursor++;
-                    input.len++;
-                    input.username[input.cursor] = '\0';
-                    drawInput(focus, input); // why is it printing at inputBox when i start typing even though the focus.curLocation is obviously passwordBox
+                if (input.usernameBoxCursor < 26 && strcmp(focus.curLocation, "usernameBox") == 0) {
+                    input.username[input.usernameBoxCursor] = ch;
+                    input.usernameBoxCursor++;
+                    input.usernameBoxLen++;
+                    input.username[input.usernameBoxCursor] = '\0';
+                    drawInput(focus, input); 
+                }
+
+                if (input.usernameBoxCursor < 26 && strcmp(focus.curLocation, "passwordBox") == 0) {
+                    input.password[input.passwordBoxCursor] = ch;
+                    input.passwordBoxCursor++;
+                    input.passwordBoxLen++;
+                    input.password[input.passwordBoxCursor] = '\0';
+                    drawInput(focus, input); 
                 }
                 break;
-
         }
-        wrefresh(loginWin);
-        wrefresh(usernameBox);
     }
 
     free(input.username);
