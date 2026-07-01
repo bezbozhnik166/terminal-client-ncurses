@@ -97,8 +97,7 @@ void initLogin(){
     wrefresh(usernameBox);
     wrefresh(passwordBox);
 
-                      // 0              1              2          3
-    // char* elements[4] = {"usernameBox", "passwordBox", "[login]", "[exit]"};
+    char* verElements[3] = {"usernameBox", "passwordBox", "opts"};
 
     int running = 1;
     int ch;
@@ -121,11 +120,25 @@ void initLogin(){
                 break;
 
             case KEY_UP:
-                focus.curLocation = "usernameBox";
+                if (strcmp(focus.curLocation, "usernameBox") == 0) {
+                    focus.curLocation = "passwordBox";
+                    wrefresh(passwordBox);
+                }
+                else {
+                    focus.curLocation = "usernameBox";
+                    wrefresh(usernameBox);
+                }
                 break;
 
             case KEY_DOWN:
-                focus.curLocation = "passwordBox";
+                if (strcmp(focus.curLocation, "passwordBox") == 0) {
+                    focus.curLocation = "usernameBox";
+                    wrefresh(usernameBox);
+                }
+                else {
+                    focus.curLocation = "passwordBox";
+                    wrefresh(passwordBox);
+                }
                 break;
 
             case '\n':
@@ -141,7 +154,7 @@ void initLogin(){
                     drawInput(focus, input); 
                 }
 
-                if (input.usernameBoxCursor < 26 && strcmp(focus.curLocation, "passwordBox") == 0) {
+                if (input.passwordBoxCursor < 26 && strcmp(focus.curLocation, "passwordBox") == 0) {
                     input.password[input.passwordBoxCursor] = ch;
                     input.passwordBoxCursor++;
                     input.passwordBoxLen++;
