@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define DEFAULT_LOCATION "passwordBox"
 
@@ -25,7 +26,23 @@ typedef struct{
     char* login;
     char* exit;
     char* curLocation;
+    int curLocationInt;
 } Focus;
+
+void changeFocus(Focus* focus, bool increment, char* verElements){
+    for (int i = 0; i < 3; i++) {
+        if (strcmp(focus->curLocation, &verElements[i]) == 0) { // maybe make this it's own function
+            focus->curLocationInt = i;
+        }
+    }
+
+    if (increment == true && focus->curLocationInt <= 1) {
+        focus->curLocationInt++;
+        focus->curLocation = &verElements[focus->curLocationInt]; // this is incorrect for c. Need to find out how to do this the correct way.
+    }
+
+
+}
 
 void drawInput(Focus focus, Input input){
     if (strcmp(focus.curLocation, "usernameBox") == 0){
@@ -120,29 +137,15 @@ void initLogin(){
                 break;
 
             case KEY_UP:
-                if (strcmp(focus.curLocation, "usernameBox") == 0) {
-                    focus.curLocation = "passwordBox";
-                    wrefresh(passwordBox);
-                }
-                else {
-                    focus.curLocation = "usernameBox";
-                    wrefresh(usernameBox);
-                }
+                changeFocus(&focus, false);
                 break;
 
             case KEY_DOWN:
-                if (strcmp(focus.curLocation, "passwordBox") == 0) {
-                    focus.curLocation = "usernameBox";
-                    wrefresh(usernameBox);
-                }
-                else {
-                    focus.curLocation = "passwordBox";
-                    wrefresh(passwordBox);
-                }
+                changeFocus(&focus, true);
                 break;
 
             case '\n':
-                running = 0;;
+                running = 0;
                 break;
 
             default:
