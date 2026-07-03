@@ -29,19 +29,37 @@ typedef struct{
     int curLocationInt;
 } Focus;
 
-void changeFocus(Focus* focus, bool increment, char* verElements){
+void checkFocus(Focus* focus, char* verElements[]){
     for (int i = 0; i < 3; i++) {
-        if (strcmp(focus->curLocation, &verElements[i]) == 0) { // maybe make this it's own function
+        if (strcmp(focus->curLocation, verElements[i]) == 0) { // maybe make this it's own function
             focus->curLocationInt = i;
         }
     }
+}
 
-    if (increment == true && focus->curLocationInt <= 1) {
+void dynamicRefresh(Focus* focus){
+    for (int i = 0; i < 3; i++) {
+        if (strcmp(focus->curLocation, "usernameBox")) {
+            wrefresh(focus->usernameBox);
+        }
+        else if (strcmp(focus->curLocation, "passwordBox")) {
+            wrefresh(focus->passwordBox);
+        }
+    }
+}
+
+void changeFocus(Focus* focus, bool increment, char* verElements[]){
+    checkFocus(focus, verElements);
+
+    if (increment == true && focus->curLocationInt != 2) {
         focus->curLocationInt++;
-        focus->curLocation = &verElements[focus->curLocationInt]; // this is incorrect for c. Need to find out how to do this the correct way.
+        focus->curLocation = verElements[focus->curLocationInt]; 
     }
 
-
+    if (increment == false && focus->curLocationInt != 0) {
+        focus->curLocationInt--;
+        focus->curLocation = verElements[focus->curLocationInt]; 
+    }
 }
 
 void drawInput(Focus focus, Input input){
@@ -137,11 +155,13 @@ void initLogin(){
                 break;
 
             case KEY_UP:
-                changeFocus(&focus, false);
+                changeFocus(&focus, false, verElements);
+                dynamicRefresh(&focus);
                 break;
 
             case KEY_DOWN:
-                changeFocus(&focus, true);
+                changeFocus(&focus, true, verElements);
+                dynamicRefresh(&focus);
                 break;
 
             case '\n':
@@ -151,7 +171,7 @@ void initLogin(){
             default:
                 if (input.usernameBoxCursor < 26 && strcmp(focus.curLocation, "usernameBox") == 0) {
                     input.username[input.usernameBoxCursor] = ch;
-                    input.usernameBoxCursor++;
+                    input.usernameBoxCursor++;{}
                     input.usernameBoxLen++;
                     input.username[input.usernameBoxCursor] = '\0';
                     drawInput(focus, input); 
