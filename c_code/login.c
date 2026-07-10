@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define DEFAULT_LOCATION "passwordBox"
+#define DEFAULT_LOCATION "usernameBox"
 
 // typedef struct user {
 //     char *username;
@@ -23,6 +23,7 @@ typedef struct{
 typedef struct{
     WINDOW* usernameBox;
     WINDOW* passwordBox;
+	WINDOW* opts;
     char* login;
     char* exit;
     char* curLocation;
@@ -38,28 +39,34 @@ void checkFocus(Focus* focus, char* verElements[]){
 }
 
 void dynamicRefresh(Focus* focus){
-    for (int i = 0; i < 3; i++) {
-        if (strcmp(focus->curLocation, "usernameBox")) {
-            wrefresh(focus->usernameBox);
-        }
-        else if (strcmp(focus->curLocation, "passwordBox")) {
-            wrefresh(focus->passwordBox);
-        }
-    }
+	if (strcmp(focus->curLocation, "usernameBox") == 0) {
+		wrefresh(focus->usernameBox);
+	}
+	else if (strcmp(focus->curLocation, "passwordBox") == 0) {
+		wrefresh(focus->passwordBox);
+	}
+	else if (strcmp(focus->curLocation, "opts") == 0) {
+		
+	}
 }
 
 void changeFocus(Focus* focus, bool increment, char* verElements[]){
     checkFocus(focus, verElements);
 
-    if (increment == true && focus->curLocationInt != 2) {
+    if (increment == true ) {
         focus->curLocationInt++;
+		if (focus->curLocationInt > 2)
+			focus->curLocationInt = 2;
         focus->curLocation = verElements[focus->curLocationInt]; 
     }
 
-    if (increment == false && focus->curLocationInt != 0) {
+    if (increment == false ) {
         focus->curLocationInt--;
+		if (focus->curLocationInt < 0)
+			focus->curLocationInt = 0;
         focus->curLocation = verElements[focus->curLocationInt]; 
     }
+	
 }
 
 void drawInput(Focus focus, Input input){
@@ -101,12 +108,12 @@ void initLogin(){
     wbkgd(passwordBox, COLOR_PAIR(1));
     keypad(passwordBox, 1);
 
+	WINDOW* opts = derwin(loginWin, int, int, int, int)
+
     mvwprintw(loginWin, 3, 2, "username:");
     mvwprintw(loginWin, 5, 2, "password:");
 
-    wattron(loginWin, A_REVERSE);
     mvwprintw(loginWin, 7, win_width - 13, "[login]");
-    wattroff(loginWin, A_REVERSE);
     mvwprintw(loginWin, 7, win_width - 20, "[exit]");
 
     Focus focus;
@@ -129,8 +136,8 @@ void initLogin(){
     box(loginWin, 0, 0);
     refresh();
     wrefresh(loginWin);
-    wrefresh(usernameBox);
     wrefresh(passwordBox);
+    wrefresh(usernameBox);
 
     char* verElements[3] = {"usernameBox", "passwordBox", "opts"};
 
@@ -156,7 +163,7 @@ void initLogin(){
 
             case KEY_UP:
                 changeFocus(&focus, false, verElements);
-                dynamicRefresh(&focus);
+                dynamicRefresh(&focus); 
                 break;
 
             case KEY_DOWN:
