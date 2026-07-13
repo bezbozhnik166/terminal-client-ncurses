@@ -108,7 +108,7 @@ void initLogin(){
     wbkgd(passwordBox, COLOR_PAIR(1));
     keypad(passwordBox, 1);
 
-	WINDOW* opts = derwin(loginWin, int, int, int, int)
+	WINDOW* opts = derwin(loginWin, win_height, win_width, starty, startx);
 
     mvwprintw(loginWin, 3, 2, "username:");
     mvwprintw(loginWin, 5, 2, "password:");
