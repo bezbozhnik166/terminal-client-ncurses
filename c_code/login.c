@@ -69,11 +69,13 @@ void dynamicRefresh(Focus* focus){
 	}
 
 	else if (strcmp(focus->curLocation, "passwordBox") == 0) {
+		curs_set(1);
 		refreshOpts(*focus, ""); // this is to stop highlighting opts
 		wrefresh(focus->passwordBox);
 	}
 
 	else if (strcmp(focus->curLocation, "opts") == 0) {
+		curs_set(0);
 		refreshOpts(*focus, "login");
 	}
 }
@@ -194,11 +196,35 @@ void initLogin(){
 				if (strcmp(focus.curLocation, "opts") == 0) {
 					refreshOpts(focus, "login");
 				}
+
+				else if (strcmp(focus.curLocation, "usernameBox") == 0) {
+					input.usernameBoxCursor--;
+					if (input.usernameBoxCursor < 0)
+						input.usernameBoxCursor = 0;
+					wmove(focus.usernameBox, 0, input.usernameBoxCursor);
+					wrefresh(usernameBox);
+				}
+
+				else if (strcmp(focus.curLocation, "passwordBox") == 0) {
+					input.passwordBoxCursor--;
+					if (input.passwordBoxCursor < 0)
+						input.passwordBoxCursor = 0;
+					wmove(focus.passwordBox, 0, input.passwordBoxCursor);
+					wrefresh(passwordBox);
+				}
 				break;
 
-			case KEY_RIGHT:
+			case KEY_RIGHT: // TODO: fix 
 				if (strcmp(focus.curLocation, "opts") == 0) {
 					refreshOpts(focus, "exit");
+				}
+
+				else if (input.usernameBoxCursor < 26 && strcmp(focus.curLocation, "usernameBox") == 0) {
+
+				}
+
+				else if (input.passwordBoxCursor < 26 && strcmp(focus.curLocation, "passwordBox") == 0) {
+
 				}
 				break;
 
@@ -216,16 +242,16 @@ void initLogin(){
                 running = 0;
                 break;
 
-            default:
-                if (input.usernameBoxCursor < 26 && strcmp(focus.curLocation, "usernameBox") == 0) {
+			default: // TODO: inputting chars should be different based on wheter the curser is in the middle of the buffer or at the end. Just like in main.c
+                if (input.usernameBoxCursor < 25 && strcmp(focus.curLocation, "usernameBox") == 0) {
                     input.username[input.usernameBoxCursor] = ch;
-                    input.usernameBoxCursor++;{}
+                    input.usernameBoxCursor++;
                     input.usernameBoxLen++;
                     input.username[input.usernameBoxCursor] = '\0';
                     drawInput(focus, input); 
                 }
 
-                if (input.passwordBoxCursor < 26 && strcmp(focus.curLocation, "passwordBox") == 0) {
+                if (input.passwordBoxCursor < 25 && strcmp(focus.curLocation, "passwordBox") == 0) {
                     input.password[input.passwordBoxCursor] = ch;
                     input.passwordBoxCursor++;
                     input.passwordBoxLen++;
