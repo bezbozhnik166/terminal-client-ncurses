@@ -1,6 +1,5 @@
 #include <ncurses.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
@@ -24,11 +23,37 @@ typedef struct{
     WINDOW* usernameBox;
     WINDOW* passwordBox;
 	WINDOW* opts;
-    char* login;
-    char* exit;
+    // char* login;
+    // char* exit;
+	char* optFocus;
     char* curLocation;
     int curLocationInt;
 } Focus;
+
+void refreshOpts(Focus focus, char* highlight){
+	if (strcmp(highlight, "login") == 0) {
+		werase(focus.opts);
+		wattron(focus.opts, A_REVERSE);
+		mvwprintw(focus.opts, 0, 17, "[login]");
+		wattroff(focus.opts, A_REVERSE);
+		mvwprintw(focus.opts, 0, 26, "[exit]");
+	}
+
+	else if (strcmp(highlight, "exit") == 0) {
+		werase(focus.opts);
+		wattron(focus.opts, A_REVERSE);
+		mvwprintw(focus.opts, 0, 26, "[exit]");
+		wattroff(focus.opts, A_REVERSE);
+		mvwprintw(focus.opts, 0, 17, "[login]");
+	}
+
+	else if (strcmp(highlight, "") == 0) {
+		werase(focus.opts);
+		mvwprintw(focus.opts, 0, 17, "[login]");
+		mvwprintw(focus.opts, 0, 26, "[exit]");
+	}
+	wrefresh(focus.opts);
+}
 
 void checkFocus(Focus* focus, char* verElements[]){
     for (int i = 0; i < 3; i++) {
@@ -42,17 +67,20 @@ void dynamicRefresh(Focus* focus){
 	if (strcmp(focus->curLocation, "usernameBox") == 0) {
 		wrefresh(focus->usernameBox);
 	}
+
 	else if (strcmp(focus->curLocation, "passwordBox") == 0) {
+		refreshOpts(*focus, ""); // this is to stop highlighting opts
 		wrefresh(focus->passwordBox);
 	}
+
 	else if (strcmp(focus->curLocation, "opts") == 0) {
-		
+		refreshOpts(*focus, "login");
 	}
 }
 
 void changeFocus(Focus* focus, bool increment, char* verElements[]){
-    checkFocus(focus, verElements);
-
+    // checkFocus(focus, verElements);
+    //
     if (increment == true ) {
         focus->curLocationInt++;
 		if (focus->curLocationInt > 2)
@@ -108,19 +136,17 @@ void initLogin(){
     wbkgd(passwordBox, COLOR_PAIR(1));
     keypad(passwordBox, 1);
 
-	WINDOW* opts = derwin(loginWin, int, int, int, int)
+	WINDOW* opts = derwin(loginWin, 1, win_width - 2, 7, 1);
+    // wbkgd(opts, COLOR_PAIR(1));
 
     mvwprintw(loginWin, 3, 2, "username:");
     mvwprintw(loginWin, 5, 2, "password:");
 
-    mvwprintw(loginWin, 7, win_width - 13, "[login]");
-    mvwprintw(loginWin, 7, win_width - 20, "[exit]");
-
     Focus focus;
     focus.usernameBox = usernameBox;
     focus.passwordBox = passwordBox;
-    focus.login = "[login]";
-    focus.exit = "[exit]";
+	focus.opts = opts;
+	focus.optFocus = "";
     focus.curLocation = DEFAULT_LOCATION;
 
     Input input;
@@ -135,7 +161,10 @@ void initLogin(){
     
     box(loginWin, 0, 0);
     refresh();
+
+	refreshOpts(focus, "");
     wrefresh(loginWin);
+	wrefresh(opts);
     wrefresh(passwordBox);
     wrefresh(usernameBox);
 
@@ -160,6 +189,18 @@ void initLogin(){
                     drawInput(focus, input);
                 }
                 break;
+
+			case KEY_LEFT:
+				if (strcmp(focus.curLocation, "opts") == 0) {
+					refreshOpts(focus, "login");
+				}
+				break;
+
+			case KEY_RIGHT:
+				if (strcmp(focus.curLocation, "opts") == 0) {
+					refreshOpts(focus, "exit");
+				}
+				break;
 
             case KEY_UP:
                 changeFocus(&focus, false, verElements);
@@ -198,7 +239,6 @@ void initLogin(){
     free(input.username);
     free(input.password);
     endwin();
-    printf("%s\n", focus.curLocation);
 }
 
 int main()
