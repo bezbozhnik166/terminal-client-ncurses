@@ -6,10 +6,6 @@
 
 #define DEFAULT_LOCATION "usernameBox"
 
-// typedef struct user {
-//     char *username;
-// } user;
-
 typedef struct{
     char* username;
     char* password;
@@ -22,14 +18,19 @@ typedef struct{
 typedef struct{
     WINDOW* usernameBox;
     WINDOW* passwordBox;
-	WINDOW* opts;
-    // char* login;
-    // char* exit;
-	char* optFocus;
+    WINDOW* opts;
+    char* optFocus;
     char* curLocation;
     int curLocationInt;
 } Focus;
 
+void strShiftDelete(char* str, int delete_index){
+    if (delete_index < 0)
+        return;
+
+    for (int i = delete_index; str[i] != '\0'; i++)
+        str[i] = str[i + 1];
+}
 
 void strShiftAdd(char *str, int shift_index, char ch, int len){
     
@@ -187,19 +188,40 @@ void initLogin(){
     int ch;
     while (running) {
         switch (ch = wgetch(usernameBox)) {
-	    case KEY_BACKSPACE: // TODO: make it be able to delete chars in the middle of the written word buffer
-                if (input.usernameBoxCursor > 0 && strcmp(focus.curLocation, "usernameBox") == 0) {
-                    input.usernameBoxCursor--;
-                    input.usernameBoxLen--;
-                    input.username[input.usernameBoxCursor] = '\0';
-                    drawInput(focus, input);
+	    case KEY_BACKSPACE: 
+                if (input.usernameBoxCursor > 0 && strcmp(focus.curLocation, "usernameBox") == 0 && input.usernameBoxLen > 0) {
+		    input.usernameBoxCursor--;
+		    input.usernameBoxLen--;
+
+		    if(input.usernameBoxLen == input.usernameBoxCursor){
+			input.username[input.usernameBoxCursor] = '\0';
+			drawInput(focus, input);
+		    }
+
+		    else {
+			strShiftDelete(input.username, input.usernameBoxCursor);
+			drawInput(focus, input);
+			wmove(focus.usernameBox, 0, input.usernameBoxCursor);
+			wrefresh(focus.usernameBox);
+		    }
                 }
 
-                else if (input.passwordBoxCursor > 0 && strcmp(focus.curLocation, "passwordBox") == 0) {
+                else if (input.passwordBoxCursor > 0 && strcmp(focus.curLocation, "passwordBox") == 0 && input.passwordBoxLen > 0) {
                     input.passwordBoxCursor--;
                     input.passwordBoxLen--;
-                    input.password[input.passwordBoxCursor] = '\0';
-                    drawInput(focus, input);
+
+		    if (input.passwordBoxLen == input.passwordBoxCursor) {
+			input.password[input.passwordBoxCursor] = '\0';
+			drawInput(focus, input);
+		    }
+
+		    else {
+			strShiftDelete(input.password, input.passwordBoxCursor);
+			drawInput(focus, input);
+			wmove(focus.passwordBox, 0, input.passwordBoxCursor);
+			wrefresh(focus.passwordBox);
+		    }
+
                 }
                 break;
 
@@ -225,7 +247,7 @@ void initLogin(){
 		    }
 		    break;
 
-	    case KEY_RIGHT: // TODO: fix 
+	    case KEY_RIGHT: 
 		    if (strcmp(focus.curLocation, "opts") == 0) {
 			    refreshOpts(focus, "exit");
 		    }
@@ -277,6 +299,7 @@ void initLogin(){
                         input.usernameBoxLen++;
 			drawInput(focus, input);
                         wmove(focus.usernameBox, 0, input.usernameBoxCursor);
+			wrefresh(focus.usernameBox);
 		    }
 		}
 
@@ -295,6 +318,7 @@ void initLogin(){
                         input.passwordBoxLen++;
 			drawInput(focus, input);
                         wmove(focus.passwordBox, 0, input.passwordBoxCursor);
+			wrefresh(focus.passwordBox);
 		    }
                 }
                 break;
