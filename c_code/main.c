@@ -214,15 +214,15 @@ int main(int argc, char *argv[])
                 break;
 
             default:
-                if (input.len + 1 != column - 3) {
-                    if (input.len == input.cursor) {
+                if (input.len + 1 != column - 3) { // if it doesn't overflow
+                    if (input.len == input.cursor) { // and if the cursor is at the end of the written buffer
                         input.buffer[input.cursor] = ch;
                         input.buffer[input.cursor + 1] = '\0';
                         input.cursor++;
                         input.len++;
                         drawInputBox(inputBox, input);
                     }
-                    else {     
+                    else {     // if the cursor is not at the end of the buffer
                         strShiftAdd(input.buffer, input.cursor, ch, input.len); 
                         input.cursor++;
                         input.len++;
