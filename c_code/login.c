@@ -79,22 +79,21 @@ void refreshOpts(Focus focus, OptsFocus highlight){
 
 void dynamicRefresh(Focus* focus){
     switch (focus->curLocation) {
-	case FOCUS_USERNAME:
-	    wrefresh(focus->usernameBox);
-	    break;
+		case FOCUS_USERNAME:
+			wrefresh(focus->usernameBox);
+			break;
 
-	case FOCUS_PASSWORD:
-	    curs_set(1);
-	    refreshOpts(*focus, EMPTY); // this is to stop highlighting opts
-	    wrefresh(focus->passwordBox);
-	    break;
+		case FOCUS_PASSWORD:
+			curs_set(1);
+			refreshOpts(*focus, EMPTY); // this is to stop highlighting opts
+			wrefresh(focus->passwordBox);
+			break;
 
-	case OPTIONS:
-	    curs_set(0);
-	    refreshOpts(*focus, LOGIN);
-	    break;
-    }
-
+		case OPTIONS:
+			curs_set(0);
+			refreshOpts(*focus, LOGIN);
+			break;
+		}
 }
 
 void moveFocus(Focus* focus, bool increment){
@@ -217,42 +216,42 @@ void initLogin(){
 			break;
 
 	    case KEY_LEFT:
-		if ( focus.curLocation == OPTIONS) {
-		    refreshOpts(focus, LOGIN);
-		}
+			if ( focus.curLocation == OPTIONS) {
+				refreshOpts(focus, LOGIN);
+			}
 
-		else if ( focus.curLocation == FOCUS_USERNAME) {
-		    input.usernameBoxCursor--;
-		    if (input.usernameBoxCursor < 0) input.usernameBoxCursor = 0;
-		    wmove(focus.usernameBox, 0, input.usernameBoxCursor);
-		    wrefresh(usernameBox);
-		}
+			else if ( focus.curLocation == FOCUS_USERNAME) {
+				input.usernameBoxCursor--;
+				if (input.usernameBoxCursor < 0) input.usernameBoxCursor = 0;
+				wmove(focus.usernameBox, 0, input.usernameBoxCursor);
+				wrefresh(usernameBox);
+			}
 
-		else if ( focus.curLocation == FOCUS_PASSWORD) {
-		    input.passwordBoxCursor--;
-		    if (input.passwordBoxCursor < 0) input.passwordBoxCursor = 0;
-		    wmove(focus.passwordBox, 0, input.passwordBoxCursor);
-		    wrefresh(passwordBox);
-		}
-		break;
+			else if ( focus.curLocation == FOCUS_PASSWORD) {
+				input.passwordBoxCursor--;
+				if (input.passwordBoxCursor < 0) input.passwordBoxCursor = 0;
+				wmove(focus.passwordBox, 0, input.passwordBoxCursor);
+				wrefresh(passwordBox);
+			}
+			break;
 
 	    case KEY_RIGHT: 
-		if ( focus.curLocation == OPTIONS) refreshOpts(focus, EXIT);
+			if ( focus.curLocation == OPTIONS) refreshOpts(focus, EXIT);
 
-		else if (input.usernameBoxCursor < 25 &&  focus.curLocation == FOCUS_USERNAME) {
-		    input.usernameBoxCursor++;
-		    if (input.usernameBoxCursor > input.usernameBoxLen) input.usernameBoxCursor = input.usernameBoxLen;
-		    wmove(focus.usernameBox, 0, input.usernameBoxCursor);
-		    wrefresh(usernameBox);
-		}
+			else if (input.usernameBoxCursor < 25 &&  focus.curLocation == FOCUS_USERNAME) {
+				input.usernameBoxCursor++;
+				if (input.usernameBoxCursor > input.usernameBoxLen) input.usernameBoxCursor = input.usernameBoxLen;
+				wmove(focus.usernameBox, 0, input.usernameBoxCursor);
+				wrefresh(usernameBox);
+			}
 
-		else if (input.passwordBoxCursor < 25 &&  focus.curLocation == FOCUS_PASSWORD) {
-		    input.passwordBoxCursor++;
-		    if (input.passwordBoxCursor > input.passwordBoxLen) input.passwordBoxCursor = input.passwordBoxLen;
-		    wmove(focus.passwordBox, 0, input.passwordBoxCursor);
-		    wrefresh(passwordBox);
-		}
-		break;
+			else if (input.passwordBoxCursor < 25 &&  focus.curLocation == FOCUS_PASSWORD) {
+				input.passwordBoxCursor++;
+				if (input.passwordBoxCursor > input.passwordBoxLen) input.passwordBoxCursor = input.passwordBoxLen;
+				wmove(focus.passwordBox, 0, input.passwordBoxCursor);
+				wrefresh(passwordBox);
+			}
+			break;
 
 		case KEY_UP:
 			moveFocus(&focus, false);
