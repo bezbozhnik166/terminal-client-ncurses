@@ -1,10 +1,24 @@
 #include <ncurses.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdbool.h>
 
-#define DEFAULT_LOCATION "usernameBox"
+// typedef enum {
+//     UP,
+//     DOWN
+// }upDown;
+
+typedef enum {
+    FOCUS_USERNAME,
+    FOCUS_PASSWORD,
+    OPTIONS
+}FocusLocation;
+
+typedef enum {
+    LOGIN,
+    EXIT,
+    EMPTY
+}OptsFocus;
 
 typedef struct{
     char* username;
@@ -19,9 +33,8 @@ typedef struct{
     WINDOW* usernameBox;
     WINDOW* passwordBox;
     WINDOW* opts;
-    char* optFocus;
-    char* curLocation;
-    int curLocationInt;
+    OptsFocus optFocus;
+    FocusLocation curLocation;
 } Focus;
 
 void strShiftDelete(char* str, int delete_index){
@@ -34,91 +47,74 @@ void strShiftDelete(char* str, int delete_index){
 
 void strShiftAdd(char *str, int shift_index, char ch, int len){
     
-    for (int i = len; i >= shift_index; i--)
-    {
-        str[i + 1] = str[i];
-    }
+    for (int i = len; i >= shift_index; i--)  str[i + 1] = str[i];
 
     str[shift_index] = ch;
 }
 
-void refreshOpts(Focus focus, char* highlight){
-	if (strcmp(highlight, "login") == 0) {
-		werase(focus.opts);
-		wattron(focus.opts, A_REVERSE);
-		mvwprintw(focus.opts, 0, 17, "[login]");
-		wattroff(focus.opts, A_REVERSE);
-		mvwprintw(focus.opts, 0, 26, "[exit]");
-	}
-
-	else if (strcmp(highlight, "exit") == 0) {
-		werase(focus.opts);
-		wattron(focus.opts, A_REVERSE);
-		mvwprintw(focus.opts, 0, 26, "[exit]");
-		wattroff(focus.opts, A_REVERSE);
-		mvwprintw(focus.opts, 0, 17, "[login]");
-	}
-
-	else if (strcmp(highlight, "") == 0) {
-		werase(focus.opts);
-		mvwprintw(focus.opts, 0, 17, "[login]");
-		mvwprintw(focus.opts, 0, 26, "[exit]");
-	}
-	wrefresh(focus.opts);
-}
-
-void checkFocus(Focus* focus, char* verElements[]){
-    for (int i = 0; i < 3; i++) {
-        if (strcmp(focus->curLocation, verElements[i]) == 0) { // maybe make this it's own function
-            focus->curLocationInt = i;
-        }
+void refreshOpts(Focus focus, OptsFocus highlight){
+    if (highlight == LOGIN) {
+	werase(focus.opts);
+	wattron(focus.opts, A_REVERSE);
+	mvwprintw(focus.opts, 0, 17, "[login]");
+	wattroff(focus.opts, A_REVERSE);
+	mvwprintw(focus.opts, 0, 26, "[exit]");
     }
+
+    else if (highlight == EXIT) {
+	werase(focus.opts);
+	wattron(focus.opts, A_REVERSE);
+	mvwprintw(focus.opts, 0, 26, "[exit]");
+	wattroff(focus.opts, A_REVERSE);
+	mvwprintw(focus.opts, 0, 17, "[login]");
+    }
+
+    else if (highlight == EMPTY) {
+	werase(focus.opts);
+	mvwprintw(focus.opts, 0, 17, "[login]");
+	mvwprintw(focus.opts, 0, 26, "[exit]");
+    }
+    wrefresh(focus.opts);
 }
 
 void dynamicRefresh(Focus* focus){
-	if (strcmp(focus->curLocation, "usernameBox") == 0) {
-		wrefresh(focus->usernameBox);
-	}
+    switch (focus->curLocation) {
+	case FOCUS_USERNAME:
+	    wrefresh(focus->usernameBox);
+	    break;
 
-	else if (strcmp(focus->curLocation, "passwordBox") == 0) {
-		curs_set(1);
-		refreshOpts(*focus, ""); // this is to stop highlighting opts
-		wrefresh(focus->passwordBox);
-	}
+	case FOCUS_PASSWORD:
+	    curs_set(1);
+	    refreshOpts(*focus, EMPTY); // this is to stop highlighting opts
+	    wrefresh(focus->passwordBox);
+	    break;
 
-	else if (strcmp(focus->curLocation, "opts") == 0) {
-		curs_set(0);
-		refreshOpts(*focus, "login");
-	}
+	case OPTIONS:
+	    curs_set(0);
+	    refreshOpts(*focus, LOGIN);
+	    break;
+    }
+
 }
 
-void changeFocus(Focus* focus, bool increment, char* verElements[]){
-    checkFocus(focus, verElements);
-
-    if (increment == true ) {
-        focus->curLocationInt++;
-	if (focus->curLocationInt > 2)
-	    focus->curLocationInt = 2;
-        focus->curLocation = verElements[focus->curLocationInt]; 
+void moveFocus(Focus* focus, bool increment){
+    if (increment) {
+        if (focus->curLocation < OPTIONS)
+            focus->curLocation++;
+    } else {
+        if (focus->curLocation > FOCUS_USERNAME)
+            focus->curLocation--;
     }
-
-    if (increment == false ) {
-        focus->curLocationInt--;
-	if (focus->curLocationInt < 0)
-	    focus->curLocationInt = 0;
-        focus->curLocation = verElements[focus->curLocationInt]; 
-    }
-	
 }
 
 void drawInput(Focus focus, Input input){
-    if (strcmp(focus.curLocation, "usernameBox") == 0){
+    if ( focus.curLocation == FOCUS_USERNAME){
         werase(focus.usernameBox);
         mvwprintw(focus.usernameBox, 0, 0, "%s", input.username);
         wrefresh(focus.usernameBox);
     }
 
-    else if (strcmp(focus.curLocation, "passwordBox") == 0) {
+    else if ( focus.curLocation == FOCUS_PASSWORD) {
         werase(focus.passwordBox);
         mvwprintw(focus.passwordBox, 0, 0, "%s", input.password);
         wrefresh(focus.passwordBox);
@@ -138,20 +134,17 @@ void initLogin(){
     int starty = (LINES - win_height) / 2;
     int startx = (COLS - win_width) / 2;
 
-    // mvprintw(starty + 1, startx - 10, "username:");
     WINDOW* loginWin = newwin(win_height, win_width, starty, startx);
 
     WINDOW* usernameBox = derwin(loginWin, 1, win_width - 14, 3, 12); 
     wbkgd(usernameBox, COLOR_PAIR(1));
     keypad(usernameBox, 1);
 
-    // WINDOW* passwordBox = derwin(loginWin, 1, win_width - 12, 6, 12);  
     WINDOW* passwordBox = derwin(loginWin, 1, win_width - 14, 5, 12);  
     wbkgd(passwordBox, COLOR_PAIR(1));
     keypad(passwordBox, 1);
 
     WINDOW* opts = derwin(loginWin, 1, win_width - 2, 7, 1);
-    // wbkgd(opts, COLOR_PAIR(1));
 
     mvwprintw(loginWin, 3, 2, "username:");
     mvwprintw(loginWin, 5, 2, "password:");
@@ -160,8 +153,8 @@ void initLogin(){
     focus.usernameBox = usernameBox;
     focus.passwordBox = passwordBox;
     focus.opts = opts;
-    focus.optFocus = "";
-    focus.curLocation = DEFAULT_LOCATION;
+    focus.optFocus = EMPTY;
+    focus.curLocation = FOCUS_USERNAME;
 
     Input input;
     input.username = malloc(26);
@@ -176,115 +169,107 @@ void initLogin(){
     box(loginWin, 0, 0);
     refresh();
 
-    refreshOpts(focus, "");
+    refreshOpts(focus, EMPTY);
     wrefresh(loginWin);
     wrefresh(opts);
     wrefresh(passwordBox);
     wrefresh(usernameBox);
-
-    char* verElements[3] = {"usernameBox", "passwordBox", "opts"};
 
     int running = 1;
     int ch;
     while (running) {
         switch (ch = wgetch(usernameBox)) {
 	    case KEY_BACKSPACE: 
-                if (input.usernameBoxCursor > 0 && strcmp(focus.curLocation, "usernameBox") == 0 && input.usernameBoxLen > 0) {
-		    input.usernameBoxCursor--;
-		    input.usernameBoxLen--;
+			if (input.usernameBoxCursor > 0 &&  focus.curLocation == FOCUS_USERNAME && input.usernameBoxLen > 0) {
+				input.usernameBoxCursor--;
+				input.usernameBoxLen--;
 
-		    if(input.usernameBoxLen == input.usernameBoxCursor){
-			input.username[input.usernameBoxCursor] = '\0';
-			drawInput(focus, input);
-		    }
+				if(input.usernameBoxLen == input.usernameBoxCursor){
+				input.username[input.usernameBoxCursor] = '\0';
+				drawInput(focus, input);
+				}
 
-		    else {
-			strShiftDelete(input.username, input.usernameBoxCursor);
-			drawInput(focus, input);
-			wmove(focus.usernameBox, 0, input.usernameBoxCursor);
-			wrefresh(focus.usernameBox);
-		    }
-                }
+				else {
+				strShiftDelete(input.username, input.usernameBoxCursor);
+				drawInput(focus, input);
+				wmove(focus.usernameBox, 0, input.usernameBoxCursor);
+				wrefresh(focus.usernameBox);
+				}
+			}
 
-                else if (input.passwordBoxCursor > 0 && strcmp(focus.curLocation, "passwordBox") == 0 && input.passwordBoxLen > 0) {
-                    input.passwordBoxCursor--;
-                    input.passwordBoxLen--;
+			else if (input.passwordBoxCursor > 0 &&  focus.curLocation == FOCUS_PASSWORD && input.passwordBoxLen > 0) {
+				input.passwordBoxCursor--;
+				input.passwordBoxLen--;
 
-		    if (input.passwordBoxLen == input.passwordBoxCursor) {
-			input.password[input.passwordBoxCursor] = '\0';
-			drawInput(focus, input);
-		    }
+				if (input.passwordBoxLen == input.passwordBoxCursor) {
+				input.password[input.passwordBoxCursor] = '\0';
+				drawInput(focus, input);
+				}
 
-		    else {
-			strShiftDelete(input.password, input.passwordBoxCursor);
-			drawInput(focus, input);
-			wmove(focus.passwordBox, 0, input.passwordBoxCursor);
-			wrefresh(focus.passwordBox);
-		    }
+				else {
+				strShiftDelete(input.password, input.passwordBoxCursor);
+				drawInput(focus, input);
+				wmove(focus.passwordBox, 0, input.passwordBoxCursor);
+				wrefresh(focus.passwordBox);
+				}
 
-                }
-                break;
+			}
+			break;
 
 	    case KEY_LEFT:
-		    if (strcmp(focus.curLocation, "opts") == 0) {
-			    refreshOpts(focus, "login");
-		    }
+		if ( focus.curLocation == OPTIONS) {
+		    refreshOpts(focus, LOGIN);
+		}
 
-		    else if (strcmp(focus.curLocation, "usernameBox") == 0) {
-			    input.usernameBoxCursor--;
-			    if (input.usernameBoxCursor < 0)
-				    input.usernameBoxCursor = 0;
-			    wmove(focus.usernameBox, 0, input.usernameBoxCursor);
-			    wrefresh(usernameBox);
-		    }
+		else if ( focus.curLocation == FOCUS_USERNAME) {
+		    input.usernameBoxCursor--;
+		    if (input.usernameBoxCursor < 0) input.usernameBoxCursor = 0;
+		    wmove(focus.usernameBox, 0, input.usernameBoxCursor);
+		    wrefresh(usernameBox);
+		}
 
-		    else if (strcmp(focus.curLocation, "passwordBox") == 0) {
-			    input.passwordBoxCursor--;
-			    if (input.passwordBoxCursor < 0)
-				    input.passwordBoxCursor = 0;
-			    wmove(focus.passwordBox, 0, input.passwordBoxCursor);
-			    wrefresh(passwordBox);
-		    }
-		    break;
+		else if ( focus.curLocation == FOCUS_PASSWORD) {
+		    input.passwordBoxCursor--;
+		    if (input.passwordBoxCursor < 0) input.passwordBoxCursor = 0;
+		    wmove(focus.passwordBox, 0, input.passwordBoxCursor);
+		    wrefresh(passwordBox);
+		}
+		break;
 
 	    case KEY_RIGHT: 
-		    if (strcmp(focus.curLocation, "opts") == 0) {
-			    refreshOpts(focus, "exit");
-		    }
+		if ( focus.curLocation == OPTIONS) refreshOpts(focus, EXIT);
 
-		    else if (input.usernameBoxCursor < 25 && strcmp(focus.curLocation, "usernameBox") == 0) {
-			input.usernameBoxCursor++;
-			if (input.usernameBoxCursor > input.usernameBoxLen)
-			    input.usernameBoxCursor = input.usernameBoxLen;
-			wmove(focus.usernameBox, 0, input.usernameBoxCursor);
-			wrefresh(usernameBox);
-		    }
+		else if (input.usernameBoxCursor < 25 &&  focus.curLocation == FOCUS_USERNAME) {
+		    input.usernameBoxCursor++;
+		    if (input.usernameBoxCursor > input.usernameBoxLen) input.usernameBoxCursor = input.usernameBoxLen;
+		    wmove(focus.usernameBox, 0, input.usernameBoxCursor);
+		    wrefresh(usernameBox);
+		}
 
-		    else if (input.passwordBoxCursor < 25 && strcmp(focus.curLocation, "passwordBox") == 0) {
-			input.passwordBoxCursor++;
-			if (input.passwordBoxCursor > input.passwordBoxLen)
-			    input.passwordBoxCursor = input.passwordBoxLen;
-			wmove(focus.passwordBox, 0, input.passwordBoxCursor);
-			wrefresh(passwordBox);
-		    }
-		    break;
+		else if (input.passwordBoxCursor < 25 &&  focus.curLocation == FOCUS_PASSWORD) {
+		    input.passwordBoxCursor++;
+		    if (input.passwordBoxCursor > input.passwordBoxLen) input.passwordBoxCursor = input.passwordBoxLen;
+		    wmove(focus.passwordBox, 0, input.passwordBoxCursor);
+		    wrefresh(passwordBox);
+		}
+		break;
 
-            case KEY_UP:
-                changeFocus(&focus, false, verElements);
-                dynamicRefresh(&focus); 
-                break;
+		case KEY_UP:
+			moveFocus(&focus, false);
+			dynamicRefresh(&focus); 
+			break;
 
-            case KEY_DOWN:
-                changeFocus(&focus, true, verElements);
-                dynamicRefresh(&focus);
-                break;
+		case KEY_DOWN:
+			moveFocus(&focus, true);
+			dynamicRefresh(&focus);
+			break;
 
-            case '\n':
-                running = 0;
-                break;
+		case '\n':
+			running = 0;
+			break;
 
 	    default: 
-		if (input.usernameBoxCursor < 25 && strcmp(focus.curLocation, "usernameBox") == 0 && input.usernameBoxLen < 25) {
+		if (input.usernameBoxCursor < 25 &&  focus.curLocation == FOCUS_USERNAME && input.usernameBoxLen < 25) {
 		    if (input.usernameBoxLen == input.usernameBoxCursor){
 			input.username[input.usernameBoxCursor] = ch;
 			input.usernameBoxCursor++;
@@ -303,25 +288,25 @@ void initLogin(){
 		    }
 		}
 
-                if (input.passwordBoxCursor < 25 && strcmp(focus.curLocation, "passwordBox") == 0 && input.passwordBoxLen < 25) {
-		    if (input.passwordBoxLen == input.passwordBoxCursor){
-			input.password[input.passwordBoxCursor] = ch;
-			input.passwordBoxCursor++;
-			input.passwordBoxLen++;
-			input.password[input.passwordBoxCursor] = '\0';
-			drawInput(focus, input); 
-		    }
+			if (input.passwordBoxCursor < 25 &&  focus.curLocation == FOCUS_PASSWORD && input.passwordBoxLen < 25) {
+				if (input.passwordBoxLen == input.passwordBoxCursor){
+				input.password[input.passwordBoxCursor] = ch;
+				input.passwordBoxCursor++;
+				input.passwordBoxLen++;
+				input.password[input.passwordBoxCursor] = '\0';
+				drawInput(focus, input); 
+				}
 
-		    else {
-			strShiftAdd(input.password, input.passwordBoxCursor, ch, input.passwordBoxLen);
-			input.passwordBoxCursor++;
-                        input.passwordBoxLen++;
-			drawInput(focus, input);
-                        wmove(focus.passwordBox, 0, input.passwordBoxCursor);
-			wrefresh(focus.passwordBox);
-		    }
-                }
-                break;
+				else {
+				strShiftAdd(input.password, input.passwordBoxCursor, ch, input.passwordBoxLen);
+				input.passwordBoxCursor++;
+							input.passwordBoxLen++;
+				drawInput(focus, input);
+							wmove(focus.passwordBox, 0, input.passwordBoxCursor);
+				wrefresh(focus.passwordBox);
+				}
+			}
+			break;
         }
     }
 
