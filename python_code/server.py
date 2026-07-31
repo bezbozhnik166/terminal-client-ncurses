@@ -15,8 +15,16 @@ class User:
         self.addr = addr
         self.running = True
 
-    def handle_client(self):
+    def broadcast(self):
         pass
+
+    def handle_client(self): #main entry point of the program
+        while self.running:
+            data = self.conn.recv(1024)
+
+            if data:
+                print(f"got message: {data.decode()}")
+
 
 server.listen()
 

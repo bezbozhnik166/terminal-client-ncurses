@@ -1,9 +1,19 @@
 import socket
+import sys
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-server.connect(('127.0.0.1',3000))
+conn.connect(('127.0.0.1',3000))
 
-payload = "hello from client".encode()
+# payload = "hello from client".encode()
 
-server.sendall(payload)
+running = 1
+
+while running:
+    payload = sys.stdin.readline().encode()
+
+    if payload:
+        conn.sendall(payload)
+        payload = ""
+
+conn.close()

@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 typedef struct {
     int len;
     char* buffer;
@@ -82,8 +85,28 @@ void backspaceMidChar(WINDOW* inputBox, typeBox input){
     wmove(inputBox, 1, input.cursor + 1);
 }
 
+void spawnPython(int pipefd[]){
+	pid_t pid = fork();
+
+	if (pid == 0) {
+		dup2(pipefd[0], STDIN_FILENO);
+
+		close(pipefd[0]);
+		close(pipefd[1]);
+		execlp("python3", "python3", "./python_code/client.py", NULL);
+	}
+}
+
 int main(int argc, char *argv[])
 {
+
+	int pipefd[2];
+	// pipe[0] read
+	// pipe[1] write
+	pipe(pipefd);
+
+	spawnPython(pipefd);
+
     initscr();
     noecho();
 
@@ -199,10 +222,14 @@ int main(int argc, char *argv[])
                         drawChat(mainWin, output, 0);
                     }
                     wrefresh(mainWin);
+					write(pipefd[1], input.buffer, input.len);
+					write(pipefd[1], "\n", 1);
+
                     input.buffer[0] = '\0';
                     input.len = 0;
                     input.cursor = 0;
                     drawInputBox(inputBox, input);
+					
                 }
                 break;
 
@@ -243,5 +270,9 @@ int main(int argc, char *argv[])
     free(input.buffer);
     
     printf("output.row,%d\n", output.row); 
+
+	close(pipefd[0]);
+	close(pipefd[1]);
+
     return 0;
 }
