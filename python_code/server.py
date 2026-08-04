@@ -7,6 +7,8 @@ server = s.socket(s.AF_INET, s.SOCK_STREAM)
 
 server.bind((HOST,PORT))
 
+active_clients = []
+
 class User:
     def __init__(self,conn,addr):
         self.registered = False
@@ -15,15 +17,22 @@ class User:
         self.addr = addr
         self.running = True
 
-    def broadcast(self):
-        pass
+    def broadcast(self,data):
+        for client in active_clients:
+            if client != self.conn:
+                client.sendall(data)
+
+    def register(self):
+        active_clients.append(self.conn)
 
     def handle_client(self): #main entry point of the program
+        self.register()
         while self.running:
             data = self.conn.recv(1024)
 
             if data:
                 print(f"got message: {data.decode()}")
+                self.broadcast(data)
 
 
 server.listen()

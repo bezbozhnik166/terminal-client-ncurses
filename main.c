@@ -1,10 +1,12 @@
 #include <ncurses.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/prctl.h>
 
 typedef struct {
     int len;
@@ -85,27 +87,41 @@ void backspaceMidChar(WINDOW* inputBox, typeBox input){
     wmove(inputBox, 1, input.cursor + 1);
 }
 
-void spawnPython(int pipefd[]){
+void spawnPython(int toPython[], int fromPython[]){
 	pid_t pid = fork();
 
 	if (pid == 0) {
-		dup2(pipefd[0], STDIN_FILENO);
+		dup2(toPython[0], STDIN_FILENO);
+		dup2(fromPython[1], STDOUT_FILENO);
 
-		close(pipefd[0]);
-		close(pipefd[1]);
+		close(toPython[0]);
+		close(toPython[1]);
+		close(fromPython[0]);
+		close(fromPython[1]);
+
 		execlp("python3", "python3", "./python_code/client.py", NULL);
+
+		perror("exec");
+
+		exit(1);
 	}
 }
 
 int main(int argc, char *argv[])
 {
-
-	int pipefd[2];
 	// pipe[0] read
 	// pipe[1] write
-	pipe(pipefd);
+	int fromPython[2];
+	int toPython[2];
+	pipe(toPython);
+	pipe(fromPython);
 
-	spawnPython(pipefd);
+	spawnPython(toPython, fromPython);
+
+	close(toPython[0]);
+	close(fromPython[1]);
+
+	// prctl(PR_SET_PDEATHSIG, SIGTERM); // kill the child if the parent dies
 
     initscr();
     noecho();
@@ -222,8 +238,8 @@ int main(int argc, char *argv[])
                         drawChat(mainWin, output, 0);
                     }
                     wrefresh(mainWin);
-					write(pipefd[1], input.buffer, input.len);
-					write(pipefd[1], "\n", 1);
+					write(toPython[1], input.buffer, input.len);
+					write(toPython[1], "\n", 1);
 
                     input.buffer[0] = '\0';
                     input.len = 0;
@@ -270,9 +286,6 @@ int main(int argc, char *argv[])
     free(input.buffer);
     
     printf("output.row,%d\n", output.row); 
-
-	close(pipefd[0]);
-	close(pipefd[1]);
 
     return 0;
 }
