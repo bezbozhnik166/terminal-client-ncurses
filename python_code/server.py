@@ -5,6 +5,8 @@ HOST, PORT = '127.0.0.1', 3000
 
 server = s.socket(s.AF_INET, s.SOCK_STREAM)
 
+server.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
+
 server.bind((HOST,PORT))
 
 active_clients = []
@@ -31,18 +33,30 @@ class User:
             data = self.conn.recv(1024)
 
             if data:
-                print(f"got message: {data.decode()}")
+                print(f"got message: {data.decode()}",end="")
                 self.broadcast(data)
+
+            else: # I'm trying to close the thread for the client after they disconnect but for some reason it doesn't seem to work. What am i doing wrong ?
+                print("a user has disconnnected")
+                active_clients.remove(self.conn)
+                self.conn.close()
+                self.running = False
 
 
 server.listen()
 
 print(f"[Starting] Starting server on {HOST}:{PORT}")
 
-while True:
-    conn, addr = server.accept()
-    new_user = User(conn,addr)
-    thread = threading.Thread(target=(new_user.handle_client))
-    thread.start()
+try:
+    while True:
+        conn, addr = server.accept()
+        new_user = User(conn,addr)
+        thread = threading.Thread(target=new_user.handle_client)
+        thread.start()
 
-    print(f"[ACTIVE] {threading.active_count()- 1}")
+        print(f"[ACTIVE] {threading.active_count()- 1}")
+except KeyboardInterrupt:
+    print("exiting")
+
+finally:
+    server.close()

@@ -22,10 +22,15 @@ thread = threading.Thread(target=recv_from_server)
 # thread.start()
 
 while running:
-    payload = sys.stdin.readline().encode()
+    payload = sys.stdin.readline()
 
-    if payload:
-        conn.sendall(payload)
+    if payload == "!exit\n":
+        conn.close()
+        break;
+
+    elif payload:
+        conn.sendall(payload.encode())
         payload = ""
 
+print("test")
 conn.close()

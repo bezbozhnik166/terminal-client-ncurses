@@ -107,8 +107,7 @@ void spawnPython(int toPython[], int fromPython[]){
 	}
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]){
 	// pipe[0] read
 	// pipe[1] write
 	int fromPython[2];
@@ -121,7 +120,7 @@ int main(int argc, char *argv[])
 	close(toPython[0]);
 	close(fromPython[1]);
 
-	// prctl(PR_SET_PDEATHSIG, SIGTERM); // kill the child if the parent dies
+	prctl(PR_SET_PDEATHSIG, SIGTERM); // kill the child if the parent dies
 
     initscr();
     noecho();
@@ -218,6 +217,8 @@ int main(int argc, char *argv[])
 
             case '\n':
                 if (strcmp(input.buffer, "!exit") == OK) {
+					write(toPython[1], "!exit", 5);
+					write(toPython[1], "\n", 1);
                     running = 0;
                 }
 
