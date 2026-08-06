@@ -21,93 +21,17 @@ typedef struct {
     int curRow;
 } chatBox;
 
-void drawChat(WINDOW* mainWin, chatBox output, int drawIndex){
+void drawChat(WINDOW* mainWin, chatBox output, int drawIndex);
+void submit(WINDOW* mainWin, typeBox input, chatBox* output);
+void strShiftAdd(char *str, int shift_index, char ch, int len);
+void strShiftDelete(char* str, int delete_index);
+void drawInputBox(WINDOW* inputBox, typeBox input);
+void backspaceLastChar(WINDOW* inputBox, typeBox input);
+void backspaceMidChar(WINDOW* inputBox, typeBox input);
+void spawnPython(int toPython[], int fromPython[]);
+void recvPython(int fromPython[]);
 
-    werase(mainWin);
-    box(mainWin, 0, 0);
-
-    int idx = 0;
-    for (int i = drawIndex; i < output.curRow; i++){
-        if (idx >= output.row) {
-            break;
-        }
-
-        mvwprintw(mainWin, idx + 1, 1, "%d",i);
-        mvwprintw(mainWin, idx + 1, 3, "%s",output.buffer[i]);
-        idx++;
-    }
-
-    wrefresh(mainWin);
-}
-
-void submit(WINDOW* mainWin, typeBox input, chatBox* output){
-
-    strcpy(output->buffer[output->curRow], input.buffer);
-}
-
-void strShiftAdd(char *str, int shift_index, char ch, int len){
-    
-    for (int i = len; i >= shift_index; i--)
-    {
-        str[i + 1] = str[i];
-    }
-
-    str[shift_index] = ch;
-}
-
-void strShiftDelete(char* str, int delete_index){
-    if (delete_index < 0)
-        return;
-
-    for (int i = delete_index; str[i] != '\0'; i++)
-        str[i] = str[i + 1];
-}
-
-void drawInputBox(WINDOW* inputBox, typeBox input){
-    werase(inputBox);
-    box(inputBox, 0, 0);
-    mvwprintw(inputBox, 1, 1, "%s", input.buffer);
-    wrefresh(inputBox);
-}
-
-void backspaceLastChar(WINDOW* inputBox, typeBox input){
-    werase(inputBox);
-    box(inputBox, 0, 0);
-    input.buffer[input.cursor] = '\0';
-    mvwprintw(inputBox, 1, 1, "%s", input.buffer);
-    wrefresh(inputBox);
-}
-
-void backspaceMidChar(WINDOW* inputBox, typeBox input){
-    werase(inputBox);
-    box(inputBox, 0, 0);
-    strShiftDelete(input.buffer, input.cursor);
-    mvwprintw(inputBox, 1, 1, "%s", input.buffer);
-    wrefresh(inputBox);
-    wmove(inputBox, 1, input.cursor + 1);
-}
-
-void spawnPython(int toPython[], int fromPython[]){
-	pid_t pid = fork();
-
-	if (pid == 0) {
-		dup2(toPython[0], STDIN_FILENO);
-		dup2(fromPython[1], STDOUT_FILENO);
-
-		close(toPython[0]);
-		close(toPython[1]);
-		close(fromPython[0]);
-		close(fromPython[1]);
-
-		execlp("python3", "python3", "./python_code/client.py", NULL);
-
-		perror("exec");
-
-		exit(1);
-	}
-}
-
-int main(int argc, char *argv[]){
+int main(){
 	// pipe[0] read
 	// pipe[1] write
 	int fromPython[2];
@@ -288,5 +212,95 @@ int main(int argc, char *argv[]){
     
     printf("output.row,%d\n", output.row); 
 
-    return 0;
+    return EXIT_SUCCESS;
+}
+
+void drawChat(WINDOW* mainWin, chatBox output, int drawIndex){
+
+    werase(mainWin);
+    box(mainWin, 0, 0);
+
+    int idx = 0;
+    for (int i = drawIndex; i < output.curRow; i++){
+        if (idx >= output.row) {
+            break;
+        }
+
+        mvwprintw(mainWin, idx + 1, 1, "%d",i);
+        mvwprintw(mainWin, idx + 1, 3, "%s",output.buffer[i]);
+        idx++;
+    }
+
+    wrefresh(mainWin);
+}
+
+void submit(WINDOW* mainWin, typeBox input, chatBox* output){
+
+    strcpy(output->buffer[output->curRow], input.buffer);
+}
+
+void strShiftAdd(char *str, int shift_index, char ch, int len){
+    
+    for (int i = len; i >= shift_index; i--)
+    {
+        str[i + 1] = str[i];
+    }
+
+    str[shift_index] = ch;
+}
+
+void strShiftDelete(char* str, int delete_index){
+    if (delete_index < 0)
+        return;
+
+    for (int i = delete_index; str[i] != '\0'; i++)
+        str[i] = str[i + 1];
+}
+
+void drawInputBox(WINDOW* inputBox, typeBox input){
+    werase(inputBox);
+    box(inputBox, 0, 0);
+    mvwprintw(inputBox, 1, 1, "%s", input.buffer);
+    wrefresh(inputBox);
+}
+
+void backspaceLastChar(WINDOW* inputBox, typeBox input){
+    werase(inputBox);
+    box(inputBox, 0, 0);
+    input.buffer[input.cursor] = '\0';
+    mvwprintw(inputBox, 1, 1, "%s", input.buffer);
+    wrefresh(inputBox);
+}
+
+void backspaceMidChar(WINDOW* inputBox, typeBox input){
+    werase(inputBox);
+    box(inputBox, 0, 0);
+    strShiftDelete(input.buffer, input.cursor);
+    mvwprintw(inputBox, 1, 1, "%s", input.buffer);
+    wrefresh(inputBox);
+    wmove(inputBox, 1, input.cursor + 1);
+}
+
+void spawnPython(int toPython[], int fromPython[]){
+	pid_t pid = fork();
+
+	if (pid == 0) {
+		dup2(toPython[0], STDIN_FILENO);
+		dup2(fromPython[1], STDOUT_FILENO);
+
+		close(toPython[0]);
+		close(toPython[1]);
+		close(fromPython[0]);
+		close(fromPython[1]);
+
+		execlp("python3", "python3", "./python_code/client.py", NULL);
+
+		perror("exec");
+
+		exit(1);
+	}
+}
+
+void recvPython(int fromPython[]){ // make this it's own thread
+	// recv text data from server to client to main.c and display the text inside mainWin
 }

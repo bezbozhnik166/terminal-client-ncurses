@@ -5,7 +5,7 @@ HOST, PORT = '127.0.0.1', 3000
 
 server = s.socket(s.AF_INET, s.SOCK_STREAM)
 
-server.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
+# server.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
 
 server.bind((HOST,PORT))
 
