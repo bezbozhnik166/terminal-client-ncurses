@@ -1,12 +1,15 @@
 #include <ncurses.h>
+#include <sched.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/prctl.h>
+#include <pthread.h>
 
 typedef struct {
     int len;
@@ -21,6 +24,14 @@ typedef struct {
     int curRow;
 } chatBox;
 
+typedef struct {
+	typeBox *input;
+	chatBox *output;
+	int *topRow;
+	WINDOW *mainWin;
+	int fromPython;
+} receiverArgs;
+
 void drawChat(WINDOW* mainWin, chatBox output, int drawIndex);
 void submit(WINDOW* mainWin, typeBox input, chatBox* output);
 void strShiftAdd(char *str, int shift_index, char ch, int len);
@@ -29,9 +40,12 @@ void drawInputBox(WINDOW* inputBox, typeBox input);
 void backspaceLastChar(WINDOW* inputBox, typeBox input);
 void backspaceMidChar(WINDOW* inputBox, typeBox input);
 void spawnPython(int toPython[], int fromPython[]);
-void recvPython(int fromPython[]);
+void *receiver(void* arg);
 
 int main(){
+    
+    pthread_t recv;
+
 	// pipe[0] read
 	// pipe[1] write
 	int fromPython[2];
@@ -82,7 +96,20 @@ int main(){
     int ch;
     int topRow = 0;
     int maxScroll;
+    bool threadStarted = false;
+	receiverArgs args = {
+		.input = &input,
+		.output = &output,
+		.topRow = &topRow,
+		.mainWin = mainWin,
+		.fromPython = fromPython[0]
+	};
+
     while (running) {
+        if (threadStarted == false){
+            pthread_create(&recv, NULL, receiver, &args);
+            threadStarted = true;
+        }
         switch (ch = wgetch(inputBox)) {
             case KEY_UP:
                 topRow -= 2;
@@ -301,6 +328,35 @@ void spawnPython(int toPython[], int fromPython[]){
 	}
 }
 
-void recvPython(int fromPython[]){ // make this it's own thread
-	// recv text data from server to client to main.c and display the text inside mainWin
+void* receiver(void* arg){ 
+	receiverArgs *args = arg;
+
+    char buffer[1024];
+
+	while (1) {
+		ssize_t n = read(args->fromPython, buffer, sizeof(buffer));
+
+		if (buffer[0] != '\0'){
+			args->output->buffer[args->output->curRow] = malloc(args->input->len + 1);
+
+			strcpy(args->output->buffer[args->output->curRow], buffer); 
+			args->output->curRow++;
+
+			*args->topRow = (args->output->curRow - args->output->row); 
+
+			if (args->topRow < 0)
+				args->topRow = 0;
+
+			if (args->output->curRow >= args->output->row) {
+				drawChat(args->mainWin, *args->output, args->output->curRow - args->output->row); 
+			}
+			else {
+				drawChat(args->mainWin, *args->output, 0);
+			}
+			wrefresh(args->mainWin);
+
+			buffer[0] = '\0';
+		}
+	}
+    return NULL;
 }
