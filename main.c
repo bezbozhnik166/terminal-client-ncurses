@@ -1,3 +1,5 @@
+// main.c 
+
 #include <ncurses.h>
 #include <sched.h>
 #include <signal.h>
@@ -334,18 +336,21 @@ void* receiver(void* arg){
     char buffer[1024];
 
 	while (1) {
-		ssize_t n = read(args->fromPython, buffer, sizeof(buffer));
+		ssize_t n = read(args->fromPython, buffer, sizeof(buffer) - 1);
 
-		if (buffer[0] != '\0'){
-			args->output->buffer[args->output->curRow] = malloc(args->input->len + 1);
+
+		if (n > 0){
+			buffer[n] = '\0';
+			
+			args->output->buffer[args->output->curRow] = malloc(n + 1);
 
 			strcpy(args->output->buffer[args->output->curRow], buffer); 
 			args->output->curRow++;
 
 			*args->topRow = (args->output->curRow - args->output->row); 
 
-			if (args->topRow < 0)
-				args->topRow = 0;
+			if (*args->topRow < 0)
+				*args->topRow = 0;
 
 			if (args->output->curRow >= args->output->row) {
 				drawChat(args->mainWin, *args->output, args->output->curRow - args->output->row); 
@@ -356,6 +361,379 @@ void* receiver(void* arg){
 			wrefresh(args->mainWin);
 
 			buffer[0] = '\0';
+		}
+		else if (n == 0){
+			break;
+		}
+	}
+    return NULL;
+}
+// main.c 
+
+#include <ncurses.h>
+#include <sched.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/prctl.h>
+#include <pthread.h>
+
+typedef struct {
+    int len;
+    char* buffer;
+    int cursor;
+} typeBox;
+
+typedef struct {
+    int row;
+    int column;
+    char* buffer[255]; 
+    int curRow;
+} chatBox;
+
+typedef struct {
+	typeBox *input;
+	chatBox *output;
+	int *topRow;
+	WINDOW *mainWin;
+	int fromPython;
+} receiverArgs;
+
+void drawChat(WINDOW* mainWin, chatBox output, int drawIndex);
+void submit(WINDOW* mainWin, typeBox input, chatBox* output);
+void strShiftAdd(char *str, int shift_index, char ch, int len);
+void strShiftDelete(char* str, int delete_index);
+void drawInputBox(WINDOW* inputBox, typeBox input);
+void backspaceLastChar(WINDOW* inputBox, typeBox input);
+void backspaceMidChar(WINDOW* inputBox, typeBox input);
+void spawnPython(int toPython[], int fromPython[]);
+void *receiver(void* arg);
+
+int main(){
+    
+    pthread_t recv;
+
+	// pipe[0] read
+	// pipe[1] write
+	int fromPython[2];
+	int toPython[2];
+	pipe(toPython);
+	pipe(fromPython);
+
+	spawnPython(toPython, fromPython);
+
+	close(toPython[0]);
+	close(fromPython[1]);
+
+	prctl(PR_SET_PDEATHSIG, SIGTERM); // kill the child if the parent dies
+
+    initscr();
+    noecho();
+
+    int row, column;
+
+    getmaxyx(stdscr, row, column);
+
+    WINDOW *inputBox = newwin(3, column -2, row -3, 1);
+    WINDOW *mainWin = newwin(row - 3, column - 2, 0, 1);
+
+    typeBox input;
+    chatBox output;
+    
+    getmaxyx(mainWin, output.row, output.column);
+
+    output.row -= 2;
+    output.curRow = 0;
+
+    input.len = 0;
+    input.cursor = 0;
+    input.buffer = malloc(column);
+    input.buffer[0] = '\0';
+
+    keypad(inputBox, true);
+    keypad(stdscr, true);
+    wmove(inputBox, 1, 1); // add +1 when you move inside inputBox;
+    box(inputBox, 0, 0);
+    box(mainWin, 0, 0);
+    refresh();
+    wrefresh(mainWin);
+    wrefresh(inputBox);
+
+    int running = 1;
+    int ch;
+    int topRow = 0;
+    int maxScroll;
+    bool threadStarted = false;
+	receiverArgs args = {
+		.input = &input,
+		.output = &output,
+		.topRow = &topRow,
+		.mainWin = mainWin,
+		.fromPython = fromPython[0]
+	};
+
+    while (running) {
+        if (threadStarted == false){
+            pthread_create(&recv, NULL, receiver, &args);
+            threadStarted = true;
+        }
+        switch (ch = wgetch(inputBox)) {
+            case KEY_UP:
+                topRow -= 2;
+
+                if (topRow < 0) 
+                    topRow = 0;
+                
+                drawChat(mainWin, output, topRow);
+                break;
+
+            case KEY_DOWN:
+                topRow += 2;
+
+                maxScroll = output.curRow - output.row;
+
+                if (maxScroll < 0)
+                    maxScroll = 0;
+
+                if (topRow > maxScroll)
+                    topRow = maxScroll;
+
+                // if (output.curRow >= output.row)
+                drawChat(mainWin, output, topRow);
+                break;
+
+            case KEY_RIGHT:
+                input.cursor++;
+                if (input.cursor > input.len)
+                    input.cursor = input.len;
+                wmove(inputBox, 1, input.cursor + 1);
+                break;
+
+            case KEY_LEFT:
+                input.cursor--;
+                if (input.cursor < 0) 
+                    input.cursor = 0;
+                wmove(inputBox, 1, input.cursor + 1);
+                break;
+
+            case KEY_BACKSPACE:
+                input.cursor--;
+                input.len--;
+                if (input.len < 0)
+                    input.len = 0;
+                if (input.cursor < 0) 
+                    input.cursor = 0;
+
+                if (input.cursor == input.len)
+                    backspaceLastChar(inputBox, input);
+
+                else {
+                    backspaceMidChar(inputBox, input);
+                }
+
+                break;
+
+            case '\n':
+                if (strcmp(input.buffer, "!exit") == OK) {
+					write(toPython[1], "!exit", 5);
+					write(toPython[1], "\n", 1);
+                    running = 0;
+                }
+
+                else {
+                    output.buffer[output.curRow] = malloc(input.len + 1);
+                    strcpy(output.buffer[output.curRow], input.buffer); 
+                    output.curRow++;
+
+                    topRow = (output.curRow - output.row); 
+
+                    if (topRow < 0)
+                        topRow = 0;
+
+                    if (output.curRow >= output.row) {
+                        drawChat(mainWin, output, output.curRow - output.row); 
+                    }
+                    else {
+                        drawChat(mainWin, output, 0);
+                    }
+                    wrefresh(mainWin);
+					write(toPython[1], input.buffer, input.len);
+					write(toPython[1], "\n", 1);
+
+                    input.buffer[0] = '\0';
+                    input.len = 0;
+                    input.cursor = 0;
+                    drawInputBox(inputBox, input);
+					
+                }
+                break;
+
+            case KEY_DC:
+                input.buffer[0] = '\0';
+                input.len = 0;
+                input.cursor = 0;
+                drawInputBox(inputBox, input);
+                break;
+
+            default:
+                if (input.len + 1 != column - 3) { // if it doesn't overflow
+                    if (input.len == input.cursor) { // and if the cursor is at the end of the written buffer
+                        input.buffer[input.cursor] = ch;
+                        input.buffer[input.cursor + 1] = '\0';
+                        input.cursor++;
+                        input.len++;
+                        drawInputBox(inputBox, input);
+                    }
+                    else {     // if the cursor is not at the end of the buffer
+                        strShiftAdd(input.buffer, input.cursor, ch, input.len); 
+                        input.cursor++;
+                        input.len++;
+                        drawInputBox(inputBox, input);
+                        wmove(inputBox, 1, input.cursor + 1);
+                    }
+                }
+                break;
+        }
+
+    }
+
+    endwin();
+
+    for (int i = 0; i < output.curRow; i++)
+        free(output.buffer[i]);
+
+    free(input.buffer);
+    
+    printf("output.row,%d\n", output.row); 
+
+    return EXIT_SUCCESS;
+}
+
+void drawChat(WINDOW* mainWin, chatBox output, int drawIndex){
+
+    werase(mainWin);
+    box(mainWin, 0, 0);
+
+    int idx = 0;
+    for (int i = drawIndex; i < output.curRow; i++){
+        if (idx >= output.row) {
+            break;
+        }
+
+        mvwprintw(mainWin, idx + 1, 1, "%d",i);
+        mvwprintw(mainWin, idx + 1, 3, "%s",output.buffer[i]);
+        idx++;
+    }
+
+    wrefresh(mainWin);
+}
+
+void submit(WINDOW* mainWin, typeBox input, chatBox* output){
+
+    strcpy(output->buffer[output->curRow], input.buffer);
+}
+
+void strShiftAdd(char *str, int shift_index, char ch, int len){
+    
+    for (int i = len; i >= shift_index; i--)
+    {
+        str[i + 1] = str[i];
+    }
+
+    str[shift_index] = ch;
+}
+
+void strShiftDelete(char* str, int delete_index){
+    if (delete_index < 0)
+        return;
+
+    for (int i = delete_index; str[i] != '\0'; i++)
+        str[i] = str[i + 1];
+}
+
+void drawInputBox(WINDOW* inputBox, typeBox input){
+    werase(inputBox);
+    box(inputBox, 0, 0);
+    mvwprintw(inputBox, 1, 1, "%s", input.buffer);
+    wrefresh(inputBox);
+}
+
+void backspaceLastChar(WINDOW* inputBox, typeBox input){
+    werase(inputBox);
+    box(inputBox, 0, 0);
+    input.buffer[input.cursor] = '\0';
+    mvwprintw(inputBox, 1, 1, "%s", input.buffer);
+    wrefresh(inputBox);
+}
+
+void backspaceMidChar(WINDOW* inputBox, typeBox input){
+    werase(inputBox);
+    box(inputBox, 0, 0);
+    strShiftDelete(input.buffer, input.cursor);
+    mvwprintw(inputBox, 1, 1, "%s", input.buffer);
+    wrefresh(inputBox);
+    wmove(inputBox, 1, input.cursor + 1);
+}
+
+void spawnPython(int toPython[], int fromPython[]){
+	pid_t pid = fork();
+
+	if (pid == 0) {
+		dup2(toPython[0], STDIN_FILENO);
+		dup2(fromPython[1], STDOUT_FILENO);
+
+		close(toPython[0]);
+		close(toPython[1]);
+		close(fromPython[0]);
+		close(fromPython[1]);
+
+		execlp("python3", "python3", "./python_code/client.py", NULL);
+
+		perror("exec");
+
+		exit(1);
+	}
+}
+
+void* receiver(void* arg){ 
+	receiverArgs *args = arg;
+
+    char buffer[1024];
+
+	while (1) {
+		ssize_t n = read(args->fromPython, buffer, sizeof(buffer) - 1);
+
+
+		if (n > 0){
+			buffer[n] = '\0';
+			
+			args->output->buffer[args->output->curRow] = malloc(n + 1);
+
+			strcpy(args->output->buffer[args->output->curRow], buffer); 
+			args->output->curRow++;
+
+			*args->topRow = (args->output->curRow - args->output->row); 
+
+			if (*args->topRow < 0)
+				*args->topRow = 0;
+
+			if (args->output->curRow >= args->output->row) {
+				drawChat(args->mainWin, *args->output, args->output->curRow - args->output->row); 
+			}
+			else {
+				drawChat(args->mainWin, *args->output, 0);
+			}
+			wrefresh(args->mainWin);
+
+			buffer[0] = '\0';
+		}
+		else if (n == 0){
+			break;
 		}
 	}
     return NULL;

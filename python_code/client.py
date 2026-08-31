@@ -1,3 +1,4 @@
+#client.py
 
 import socket
 import sys
@@ -14,12 +15,13 @@ running = 1
 def recv_from_server():
     while True:
         data = conn.recv(1024) 
-        sys.stdout.writelines(data.decode()) 
+        sys.stdout.write(data.decode())
+        sys.stdout.flush()
         if not data:
             break
 
 thread = threading.Thread(target=recv_from_server)
-# thread.start()
+thread.start()
 
 while running:
     payload = sys.stdin.readline()
