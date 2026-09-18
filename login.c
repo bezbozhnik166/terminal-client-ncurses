@@ -1,6 +1,9 @@
+// login.c
+
 #include <ncurses.h>
 #include "login.h"
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct{
     char* username;
@@ -308,8 +311,10 @@ User initLogin(){
 
 			case '\n':
 				if (ui.curFocus == FOCUS_LOGIN) {
-					user.username = input.username;
-					user.password = input.password;
+					strcpy(user.username, input.username);
+					strcpy(user.password, input.password);
+					// user.username = input.username;
+					// user.password = input.password;
 					curs_set(1);
 					running = 0;
 				}

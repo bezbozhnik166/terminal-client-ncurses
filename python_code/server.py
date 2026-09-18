@@ -38,7 +38,13 @@ class User:
             try:
                 data = self.conn.recv(1024)
 
-                if data:
+                if data and self.registered == False:
+                    username, password = data.decode().split()
+                    print(username)
+                    print(password)
+                    self.registered = True
+
+                if data and self.registered == True:
                     print(f"got message: {data.decode()}",end="")
                     self.broadcast(data)
 

@@ -47,14 +47,14 @@ void *receiver(void* arg);
 
 int main(){
 
-	initLogin();
+	User user = initLogin();
     
     pthread_t recv;
 
 	// pipe[0] read
 	// pipe[1] write
-	int fromPython[2];
-	int toPython[2];
+	int fromPython[2]; // fromPython[0]
+	int toPython[2]; // use topython[1]
 	pipe(toPython);
 	pipe(fromPython);
 
@@ -64,6 +64,11 @@ int main(){
 	close(fromPython[1]);
 
 	prctl(PR_SET_PDEATHSIG, SIGTERM); // kill the child if the parent dies
+
+	dprintf(toPython[1], "%s,%s\n",
+			user.username,
+			user.password
+			);
 
     initscr();
     noecho();
