@@ -1,5 +1,6 @@
 // main.c 
 
+#include "login.h"
 #include <ncurses.h>
 #include <sched.h>
 #include <signal.h>
@@ -45,6 +46,8 @@ void spawnPython(int toPython[], int fromPython[]);
 void *receiver(void* arg);
 
 int main(){
+
+	initLogin();
     
     pthread_t recv;
 

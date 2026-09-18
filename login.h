@@ -1,4 +1,6 @@
+typedef struct User {
+    char *username;
+    char *password;
+} User;
 
-typedef struct user user;
-
-void initLogin();
+User initLogin();
