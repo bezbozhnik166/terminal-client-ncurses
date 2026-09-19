@@ -37,7 +37,7 @@ while running:
 
     elif payload:
         if first_payload == True:
-            username, password = payload.split()
+            username, password = payload.strip().split(',')
             payload = f"{username}\0{password}".encode()
             header = struct.pack("!II", TYPE_LOGIN, len(payload))
             conn.sendall(header)

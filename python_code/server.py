@@ -2,6 +2,10 @@
 
 import socket as s
 import threading
+import struct
+
+TYPE_LOGIN = 1
+TYPE_CHAT = 2
 
 HOST, PORT = '127.0.0.1', 3000
 
@@ -23,10 +27,24 @@ class User:
         self.addr = addr
         self.running = True
 
-    def broadcast(self,data):
+    def broadcast(self,message):
         for client in active_clients:
             if client != self.conn:
-                client.sendall(data)
+                message = f"[{self.username}]: {message}"
+                client.sendall(message.encode())
+
+    def recv_exact(self,conn, n):
+        data = b""
+
+        while len(data) < n:
+            chunk = conn.recv(n - len(data))
+
+            if not chunk:
+                return None
+
+            data += chunk
+
+        return data
 
     def register(self):
         active_clients.append(self.conn)
@@ -36,23 +54,45 @@ class User:
         self.conn.settimeout(1.0)
         while self.running and not server_closing.is_set():
             try:
-                data = self.conn.recv(1024)
+                header = self.recv_exact(self.conn, 8)
 
-                if data and self.registered == False:
-                    username, password = data.decode().split()
-                    print(username)
-                    print(password)
+                if header is None:
+                    break
+
+                message_type, payload_length = struct.unpack("!II", header)
+
+                data = self.recv_exact(self.conn, payload_length)
+
+                if data is None:
+                    break
+
+                if message_type == TYPE_LOGIN:
+                    username, password = data.decode().split('\0')
+                    self.username = username
+                    self.password = password
                     self.registered = True
+                    print(self.username)
+                    print(self.password)
 
-                if data and self.registered == True:
-                    print(f"got message: {data.decode()}",end="")
-                    self.broadcast(data)
-
-                else:
-                    print("a user has disconnnected")
-                    active_clients.remove(self.conn)
-                    self.conn.close()
-                    self.running = False
+                if message_type == TYPE_CHAT:
+                    message = data.decode()
+                    self.broadcast(message)
+                #
+                # if data and self.registered == False:
+                #     username, password = data.decode().split()
+                #     print(username)
+                #     print(password)
+                #     self.registered = True
+                #
+                # if data and self.registered == True:
+                #     print(f"got message: {data.decode()}",end="")
+                #     self.broadcast(data)
+                #
+                # else:
+                #     print("a user has disconnnected")
+                #     active_clients.remove(self.conn)
+                #     self.conn.close()
+                #     self.running = False
 
             except s.timeout:
                 continue

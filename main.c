@@ -35,6 +35,11 @@ typedef struct {
 	int fromPython;
 } receiverArgs;
 
+typedef enum {
+	TYPE_LOGIN,
+	TYPE_MESSAGE
+} Message_type;
+
 void drawChat(WINDOW* mainWin, chatBox output, int drawIndex);
 void submit(WINDOW* mainWin, typeBox input, chatBox* output);
 void strShiftAdd(char *str, int shift_index, char ch, int len);
