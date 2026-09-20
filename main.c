@@ -53,7 +53,7 @@ void *receiver(void* arg);
 int main(){
 
 	User user = initLogin();
-    
+
     pthread_t recv;
 
 	// pipe[0] read
@@ -189,8 +189,18 @@ int main(){
                 }
 
                 else {
-                    output.buffer[output.curRow] = malloc(input.len + 1);
-                    strcpy(output.buffer[output.curRow], input.buffer); 
+                    // output.buffer[output.curRow] = malloc(input.len + 1);
+                    // strcpy(output.buffer[output.curRow], input.buffer); 
+
+					int len = snprintf(NULL, 0, "[%s]: %s" ,user.username, input.buffer);
+
+					output.buffer[output.curRow] = malloc(len + 1);
+
+					snprintf(output.buffer[output.curRow], len + 1, 
+							"[%s]: %s",
+							user.username, input.buffer
+							);
+
                     output.curRow++;
 
                     topRow = (output.curRow - output.row); 
@@ -251,7 +261,6 @@ int main(){
         free(output.buffer[i]);
 
     free(input.buffer);
-    
     printf("output.row,%d\n", output.row); 
 
     return EXIT_SUCCESS;
