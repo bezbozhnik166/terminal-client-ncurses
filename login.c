@@ -147,9 +147,17 @@ void dynamicRefresh(Ui* ui){
 			wrefresh(ui->passwordBox);
 			break;
 
-		default:
+		case FOCUS_LOGIN:
 			curs_set(0);
 			changeOpts(*ui, LOGIN);
+			break;
+
+		case FOCUS_EXIT:
+			curs_set(0);
+			changeOpts(*ui, EXIT);
+			break;
+
+		default:
 			break;
 		}
 }
@@ -308,6 +316,20 @@ User initLogin(){
 					wrefresh(passwordBox);
 				}
 				break;
+			case '\t':
+				ui.curFocus = navigation[ui.curFocus][NEXT];
+
+				if (ui.curFocus == FOCUS_LOGIN){
+					changeOpts(ui, LOGIN);
+				}
+
+				if (ui.curFocus == FOCUS_EXIT){
+					changeOpts(ui, EXIT);
+				}
+
+				dynamicRefresh(&ui);
+
+				break;
 
 			case '\n':
 				if (ui.curFocus == FOCUS_LOGIN) {
@@ -370,3 +392,4 @@ User initLogin(){
 
 	return user;
 }
+

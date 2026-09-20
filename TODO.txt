@@ -1,0 +1,9 @@
+1- Add comments to the codebase
+2- Fix the "Adress is being used" issue in server //maybe done ? 
+3- Add tab cycling to login //done
+4- Add mouse wheel scrolling to main.c //done
+5- Make it so that Input bar expands vertically when it overflows
+6- Currently when the message exceeds the screen length it overflows into next line, but when the username is written it overwrites the message. So fix that
+7- Make the output.buffer dynamic so that it can store more than 255 lines.
+8- Make it so that the ncurses interface is resizeable and doesn't just crash when resizing the terminal
+9- On the client side when you disconnect and reconnect the python throws an error and the server gets "broken pipe" error.

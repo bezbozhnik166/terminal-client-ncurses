@@ -120,6 +120,9 @@ int main(){
 		.fromPython = fromPython[0]
 	};
 
+    MEVENT event;
+    mousemask(ALL_MOUSE_EVENTS, NULL);
+
     while (running) {
         if (threadStarted == false){
             pthread_create(&recv, NULL, receiver, &args);
@@ -181,6 +184,29 @@ int main(){
 
                 break;
 
+			case KEY_MOUSE:
+                if (getmouse(&event) == OK) {
+                    if (event.bstate & BUTTON4_PRESSED){
+						topRow -= 2;
+						if (topRow < 0)
+							topRow = 0;
+
+						drawChat(mainWin, output, topRow);
+						break;
+					}
+
+					if (event.bstate & BUTTON5_PRESSED) {
+						topRow += 2;
+
+						maxScroll = output.curRow - output.row;
+
+						if (topRow < maxScroll)
+							topRow = maxScroll;
+
+						drawChat(mainWin, output, topRow);
+						break;
+					}
+				}
             case '\n':
                 if (strcmp(input.buffer, "!exit") == OK) {
 					write(toPython[1], "!exit", 5);
@@ -189,9 +215,6 @@ int main(){
                 }
 
                 else {
-                    // output.buffer[output.curRow] = malloc(input.len + 1);
-                    // strcpy(output.buffer[output.curRow], input.buffer); 
-
 					int len = snprintf(NULL, 0, "[%s]: %s" ,user.username, input.buffer);
 
 					output.buffer[output.curRow] = malloc(len + 1);

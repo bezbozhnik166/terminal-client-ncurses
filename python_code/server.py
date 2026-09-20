@@ -11,7 +11,7 @@ HOST, PORT = '127.0.0.1', 3000
 
 server = s.socket(s.AF_INET, s.SOCK_STREAM)
 
-# server.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
+server.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
 
 server.bind((HOST,PORT))
 
@@ -28,9 +28,10 @@ class User:
         self.running = True
 
     def broadcast(self,message):
+        message = f"[{self.username}]: {message}"
+
         for client in active_clients:
             if client != self.conn:
-                message = f"[{self.username}]: {message}"
                 client.sendall(message.encode())
 
     def recv_exact(self,conn, n):
@@ -77,22 +78,6 @@ class User:
                 if message_type == TYPE_CHAT:
                     message = data.decode()
                     self.broadcast(message)
-                #
-                # if data and self.registered == False:
-                #     username, password = data.decode().split()
-                #     print(username)
-                #     print(password)
-                #     self.registered = True
-                #
-                # if data and self.registered == True:
-                #     print(f"got message: {data.decode()}",end="")
-                #     self.broadcast(data)
-                #
-                # else:
-                #     print("a user has disconnnected")
-                #     active_clients.remove(self.conn)
-                #     self.conn.close()
-                #     self.running = False
 
             except s.timeout:
                 continue
@@ -118,6 +103,10 @@ except KeyboardInterrupt:
 finally:
     server_closing.set()
     server.close()
+
+    for client in active_clients:
+        client.close()
+
 
     for thread in threads:
         thread.join()
